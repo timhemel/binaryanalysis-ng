@@ -1127,7 +1127,7 @@ def processfile(scanfilequeue, resultqueue, processlock, checksumdict,
 
         fileresult['labels'] = list(set(labels))
         fileresult['filesize'] = filesize
-        print(json.dumps(fileresult))
+        # print(json.dumps(fileresult))
         sys.stdout.flush()
 
         resultqueue.put(fileresult)
