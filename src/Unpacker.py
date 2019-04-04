@@ -148,16 +148,16 @@ class Unpacker:
     def find_offsets_for_all_signatures_iterator(self,filesize):
         res = re.finditer(bangsignatures.signature_regexp, self.scanbytes[:self.bytesread])
         for r in res:
-            s = next(k for k,v in r.groupdict().items() if v is not None)
-            # print("match found",s)
+            # s = next(k for k,v in r.groupdict().items() if v is not None)
+            s = r.lastgroup
             if s in bangsignatures.signaturesoffset:
                 # skip files that aren't big enough if the
                 # signature is not at the start of the data
                 # to be carved (example: ISO9660).
-                if r.start() + self.offsetinfile - bangsignatures.signaturesoffset[s] < 0:
+                if r.start(s) + self.offsetinfile - bangsignatures.signaturesoffset[s] < 0:
                     continue
 
-            offset = r.start()
+            offset = r.start(s)
             if not bangsignatures.prescan(s, self.scanbytes, self.bytesread, filesize, offset, self.offsetinfile):
                 continue
 
