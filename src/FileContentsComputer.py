@@ -79,6 +79,12 @@ class IsTextComputer:
         pass
 
     def compute(self, data):
+        # this is a little bit faster but echoes an error message to the
+        # console, which may slow things down again.
+        # try:
+        #     return data.tobytes().decode('ascii',errors='strict').isprintable()
+        # except UnicodeDecodeError:
+        #     return False
         self.is_text = self.is_text and \
             all(chr(x) in string.printable for x in data)
 

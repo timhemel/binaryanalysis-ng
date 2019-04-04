@@ -5892,7 +5892,7 @@ def unpackCpio(fileresult, scanenvironment, offset, unpackdir):
             if isdir:
                 dataunpacked = True
                 outfile_rel = os.path.join(unpackdir, unpackname) 
-                outfile_abs = scanenvironment.unpack_path(outfile_rel)
+                outfile_full = scanenvironment.unpack_path(outfile_rel)
                 os.makedirs(outfile_full, exist_ok=True)
                 unpackedfilesandlabels.append((outfile_rel, []))
                 continue
@@ -10746,6 +10746,7 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
 
     if offset == 0:
         certres = extractCertificate(filename_full, offset)
+        certres['length'] = filesize
         if certres['status']:
             return certres
 
@@ -10821,6 +10822,7 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
 
     # as an extra sanity check run it through the unpacker
     certres = extractCertificate(outfile_full, 0)
+    certres['length'] = filesize
     if certres['status']:
         tmplabels += certres['labels']
         tmplabels = list(set(tmplabels))
@@ -10838,7 +10840,7 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
 
 def extractCertificate(filename, offset):
     '''Helper method to extract certificate files.'''
-    filesize = fileresult.filesize
+    # filesize = fileresult.filesize
     unpackedfilesandlabels = []
     labels = []
     unpackingerror = {}
@@ -10855,7 +10857,7 @@ def extractCertificate(filename, offset):
     if p.returncode == 0:
         labels.append("certificate")
         labels.append('resource')
-        return {'status': True, 'length': filesize, 'labels': labels,
+        return {'status': True, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
     # then check if it is a PEM
@@ -10890,7 +10892,7 @@ def extractCertificate(filename, offset):
             return {'status': False, 'error': unpackingerror}
         labels.append("text")
         labels.append('resource')
-        return {'status': True, 'length': filesize, 'labels': labels,
+        return {'status': True, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
     # else fail

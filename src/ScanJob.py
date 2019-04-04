@@ -79,8 +79,12 @@ class ScanJob:
     def _stat_file(self):
         try:
             self.stat = os.stat(self.abs_filename)
-        except FileNotFounderror as e:
-            raise
+        except FileNotFoundError as e:
+            # happens with a symbolic link that points nowhere
+            if self.abs_filename.is_symlink():
+                self.stat = None
+            else:
+                raise
         except:
             self.stat = None
 
