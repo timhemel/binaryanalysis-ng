@@ -133,7 +133,64 @@ class TestScanJob(TestBase):
         result2 = self.result_queue.get()
         self.assertEqual(str(result2.filename), str(fn)+'-gzip-1/hello')
 
+    def test_find_signatures_methods_equivalent(self):
+        # fn = pathlib.Path("a/hello.gz")
+        # self._copy_file_from_testdata(fn)
+        # fn_full = self.unpackdir / fn
+        fn_full = pathlib.Path("/home/tim/bang-testdata/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz")
+        filesize = fn_full.stat().st_size
 
+        unpacker = Unpacker(self.unpackdir)
+        unpacker.open_scanfile_with_memoryview(fn_full, self.scan_environment.get_maxbytes())
+        unpacker.seek_to_last_unpacked_offset()
+        unpacker.read_chunk_from_scanfile()
+
+        offsets_no_iter = set()
+        offsets_regexps_iter = set()
+        offsets_string_iter = set()
+
+        while True:
+            os_string_iter = { x
+                for s,v in bangsignatures.signatures.items()
+                for x in unpacker.find_offsets_for_signature_find_iterator(s, v, filesize)
+                }
+            os_regexps_iter = { x
+                for s,v in bangsignatures.signature_regexps.items()
+                for x in unpacker.find_offsets_for_signature_iterator(s, v, filesize)
+                }
+            os_no_iter = set()
+            for s,v in bangsignatures.signatures.items():
+                os_no_iter.update(unpacker.find_offsets_for_signature(s, v, filesize))
+
+            print("sets equal?", sorted(os_regexps_iter),sorted(os_no_iter))
+            print("sets equal? [regexps]", os_regexps_iter == os_no_iter)
+            print("sets equal? [strings]", os_string_iter == os_no_iter)
+            offsets_no_iter.update(os_no_iter)
+            offsets_regexps_iter.update(os_regexps_iter)
+            offsets_string_iter.update(os_string_iter)
+
+            unpacker.file_unpacked({
+                'length': 100,
+                'filesandlabels': [ (0,[]) ]
+                }, filesize)
+
+            unpacker.seek_to_find_next_signature()
+            unpacker.read_chunk_from_scanfile()
+            if unpacker.get_current_offset_in_file() != filesize:
+                break
+
+        unpacker.close_scanfile()
+
+        self.assertSetEqual(set(offsets_regexps_iter), set(offsets_no_iter))
+        self.assertSetEqual(set(offsets_string_iter), set(offsets_no_iter))
+
+    def test_string_find_iter_same_as_regexps_iter(self):
+        s = "ababacdefghijklmnopqrstuvwxyz"
+        o_a1 = re.finditer('aba',s[:10])
+        o_b1 = string_find_iter('aba',s, 10)
+        la = [ m.start() for m in o_a1 ]
+        lb = [ o for o in o_b1 ]
+        self.assertListEqual(la, lb)
 
 if __name__=="__main__":
     unittest.main()

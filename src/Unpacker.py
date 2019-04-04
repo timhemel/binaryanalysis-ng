@@ -29,6 +29,17 @@ import bangunpack
 import bangsignatures
 from bangsignatures import maxsignaturesoffset
 
+def string_find_iter(needle, haystack, maxsize):
+    pos = 0
+    l = len(needle)
+    while True:
+        pos = haystack.find(needle,pos)
+        if pos < 0 or pos + l >= maxsize:
+            break
+        yield pos
+        # pos += 1
+        pos += l
+
 
 class Unpacker:
     def __init__(self, unpackroot):
@@ -167,9 +178,33 @@ class Unpacker:
             else:
                 yield (offset + self.offsetinfile, s)
 
+    def find_offsets_for_signature_find_iterator(self, s, v, filesize):
+        res = string_find_iter(v, self.scanbytes.obj, self.bytesread)
+        for r in res:
+            # print("found signature",s,r)
+            # print(bytes(self.scanbytes[r:r+len(bangsignatures.signatures[s])]),
+            #        bangsignatures.signatures[s])
+            if s in bangsignatures.signaturesoffset:
+                # skip files that aren't big enough if the
+                # signature is not at the start of the data
+                # to be carved (example: ISO9660).
+                # print("skip?",r, self.offsetinfile,bangsignatures.signaturesoffset[s])
+                # print("skip?",r+ self.offsetinfile-bangsignatures.signaturesoffset[s])
+                if r + self.offsetinfile - bangsignatures.signaturesoffset[s] < 0:
+                    continue
 
-    def find_offsets_for_signature_iterator(self, s, filesize):
-        res = re.finditer(bangsignatures.signature_regexps[s], self.scanbytes[:self.bytesread])
+            offset = r
+            if not bangsignatures.prescan(s, self.scanbytes, self.bytesread, filesize, offset, self.offsetinfile):
+                continue
+
+            # default: store a tuple (offset, signature name)
+            if s in bangsignatures.signaturesoffset:
+                yield (offset + self.offsetinfile - bangsignatures.signaturesoffset[s], s)
+            else:
+                yield (offset + self.offsetinfile, s)
+
+    def find_offsets_for_signature_iterator(self, s, v, filesize):
+        res = re.finditer(v, self.scanbytes[:self.bytesread])
         # res = re.finditer(re.escape(bangsignatures.signatures[s]), self.scanbytes[:self.bytesread])
         for r in res:
             if s in bangsignatures.signaturesoffset:
@@ -189,10 +224,10 @@ class Unpacker:
             else:
                 yield (offset + self.offsetinfile, s)
 
-    def find_offsets_for_signature(self, s, filesize):
+    def find_offsets_for_signature(self, s, v, filesize):
         offsets = set()
         # TODO: precompile regexp patterns in bangsignatures
-        res = re.finditer(re.escape(bangsignatures.signatures[s]), self.scanbytes[:self.bytesread])
+        res = re.finditer(re.escape(v), self.scanbytes[:self.bytesread])
         if res is not None:
             for r in res:
                 if s in bangsignatures.signaturesoffset:
