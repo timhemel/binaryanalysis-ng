@@ -80,7 +80,7 @@ signatures = {
     'cpio_portable': b'070707',  # man 5 cpio
     'cpio_newascii': b'070701',  # man 5 cpio
     'cpio_newcrc': b'070702',  # man 5 cpio
-    '7z': b'7z\xbc\xaf\x27\x1c',  # documentation in 7-Zip source code
+    'p7z': b'7z\xbc\xaf\x27\x1c',  # documentation in 7-Zip source code
     'chm': b'ITSF\x03\x00\x00\x00',  # /usr/share/magic but only use a part and only support version 3
     'mswim': b'MSWIM\x00\x00\x00',  # /usr/share/magic
     'sunraster': b'\x59\xa6\x6a\x95',  # https://www.fileformat.info/format/sunraster/egff.htm
@@ -169,6 +169,15 @@ def compute_signature_regexps():
 
 signature_regexps = compute_signature_regexps()
 
+def compute_signature_regexp():
+    l = []
+    for ftype,signature in signatures.items():
+        s = b'(?P<%s>%s)' % (ftype.encode(),re.escape(signature))
+        m = re.compile(s)
+        l.append(s)
+    return re.compile(b"|".join(l))
+
+signature_regexp = compute_signature_regexp()
 
 # The result of the scan is a dictionary containing:
 #
@@ -245,7 +254,7 @@ signaturetofunction = {
     'cpio_portable': bangunpack.unpackCpio,
     'cpio_newascii': bangunpack.unpackCpio,
     'cpio_newcrc': bangunpack.unpackCpio,
-    '7z': bangunpack.unpack7z,
+    'p7z': bangunpack.unpack7z,
     'chm': bangunpack.unpackCHM,
     'mswim': bangunpack.unpackWIM,
     'sunraster': bangmedia.unpackSunRaster,
