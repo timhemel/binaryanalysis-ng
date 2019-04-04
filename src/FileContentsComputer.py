@@ -86,7 +86,7 @@ class IsTextComputer:
         # except UnicodeDecodeError:
         #     return False
         self.is_text = self.is_text and \
-            all(chr(x) in string.printable for x in data)
+            all(chr(x).isprintable() for x in data)
 
     def finalize(self):
         pass
