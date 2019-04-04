@@ -23,6 +23,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import math
+import re
 
 import bangunpack
 import bangfilesystems
@@ -159,6 +160,14 @@ signaturesoffset = {
     'ambarella': 0x818,
     'romfs_ambarella': 4,
 }
+
+def compute_signature_regexps():
+    d = {}
+    for ftype,signature in signatures.items():
+        d[ftype] = re.compile(re.escape(signature))
+    return d
+
+signature_regexps = compute_signature_regexps()
 
 
 # The result of the scan is a dictionary containing:

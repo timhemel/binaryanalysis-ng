@@ -146,7 +146,8 @@ class Unpacker:
             self.scanfile.seek(-maxsignaturesoffset, 1)
 
     def find_offsets_for_signature_iterator(self, s, filesize):
-        res = re.finditer(re.escape(bangsignatures.signatures[s]), self.scanbytes[:self.bytesread])
+        res = re.finditer(bangsignatures.signature_regexps[s], self.scanbytes[:self.bytesread])
+        # res = re.finditer(re.escape(bangsignatures.signatures[s]), self.scanbytes[:self.bytesread])
         for r in res:
             if s in bangsignatures.signaturesoffset:
                 # skip files that aren't big enough if the
