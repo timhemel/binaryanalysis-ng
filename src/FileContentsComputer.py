@@ -71,6 +71,7 @@ class FileContentsComputer:
 
 class IsTextComputer:
     supports_memoryview = True
+    printable_chars = [ chr(x) in string.printable for x in range(0,256) ]
 
     def __init__(self):
         self.is_text = True
@@ -85,8 +86,10 @@ class IsTextComputer:
         #     return data.tobytes().decode('ascii',errors='strict').isprintable()
         # except UnicodeDecodeError:
         #     return False
-        self.is_text = self.is_text and \
-            all(chr(x).isprintable() for x in data)
+        # self.is_text = self.is_text and \
+        #     all(chr(x).isprintable() for x in data)
+        pc = self.printable_chars
+        self.is_text = self.is_text and all(pc[x] for x in data)
 
     def finalize(self):
         pass
