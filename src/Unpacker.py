@@ -156,28 +156,6 @@ class Unpacker:
             # use an overlap, i.e. go back
             self.scanfile.seek(-maxsignaturesoffset, 1)
 
-    def find_offsets_for_all_signatures_iterator(self,filesize):
-        res = re.finditer(bangsignatures.signature_regexp, self.scanbytes[:self.bytesread])
-        for r in res:
-            # s = next(k for k,v in r.groupdict().items() if v is not None)
-            s = r.lastgroup
-            if s in bangsignatures.signaturesoffset:
-                # skip files that aren't big enough if the
-                # signature is not at the start of the data
-                # to be carved (example: ISO9660).
-                if r.start(s) + self.offsetinfile - bangsignatures.signaturesoffset[s] < 0:
-                    continue
-
-            offset = r.start(s)
-            if not bangsignatures.prescan(s, self.scanbytes, self.bytesread, filesize, offset, self.offsetinfile):
-                continue
-
-            # default: store a tuple (offset, signature name)
-            if s in bangsignatures.signaturesoffset:
-                yield (offset + self.offsetinfile - bangsignatures.signaturesoffset[s], s)
-            else:
-                yield (offset + self.offsetinfile, s)
-
     def find_offsets_for_signature_find_iterator(self, s, v, filesize):
         res = string_find_iter(v, self.scanbytes.obj, self.bytesread)
         for r in res:
@@ -204,25 +182,21 @@ class Unpacker:
                 yield (offset + self.offsetinfile, s)
 
     def find_offsets_for_signature_iterator(self, s, v, filesize):
+        signature_offset = bangsignatures.signaturesoffset.get(s,0)
+        prescan_f = bangsignatures.prescan
         res = re.finditer(v, self.scanbytes[:self.bytesread])
-        # res = re.finditer(re.escape(bangsignatures.signatures[s]), self.scanbytes[:self.bytesread])
         for r in res:
-            if s in bangsignatures.signaturesoffset:
-                # skip files that aren't big enough if the
-                # signature is not at the start of the data
-                # to be carved (example: ISO9660).
-                if r.start() + self.offsetinfile - bangsignatures.signaturesoffset[s] < 0:
-                    continue
-
+            # skip files that aren't big enough if the
+            # signature is not at the start of the data
+            # to be carved (example: ISO9660).
             offset = r.start()
-            if not bangsignatures.prescan(s, self.scanbytes, self.bytesread, filesize, offset, self.offsetinfile):
+            if offset + self.offsetinfile < signature_offset:
                 continue
 
-            # default: store a tuple (offset, signature name)
-            if s in bangsignatures.signaturesoffset:
-                yield (offset + self.offsetinfile - bangsignatures.signaturesoffset[s], s)
-            else:
-                yield (offset + self.offsetinfile, s)
+            if not prescan_f(s, self.scanbytes, self.bytesread, filesize, offset, self.offsetinfile):
+                continue
+
+            yield (offset + self.offsetinfile - signature_offset, s)
 
     def find_offsets_for_signature(self, s, v, filesize):
         offsets = set()
