@@ -192,6 +192,16 @@ class TestScanJob(TestBase):
         lb = [ o for o in o_b1 ]
         self.assertListEqual(la, lb)
 
+    def test_re_find_overlapping_iter_same_as_lookahead_regexp_iter(self):
+        s = "ababacdefghijklmnopqrstuvwxyz"
+        re1 = re.compile('aba')
+        re2 = re.compile(r'(?=aba)')
+        o_a2 = re.finditer(re2,s)
+        o_b1 = re_find_overlapping_iter(re1,s, len(s))
+        la = [ m.start() for m in o_a2 ]
+        lb = [ pos for pos in o_b1 ]
+        self.assertListEqual(la, lb)
+
 if __name__=="__main__":
     unittest.main()
 
