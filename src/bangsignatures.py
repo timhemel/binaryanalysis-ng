@@ -165,6 +165,8 @@ def compute_signature_regexps():
     d = {}
     for ftype,signature in signatures.items():
         d[ftype] = re.compile(re.escape(signature))
+        # the expression below allows overlapping signature matches
+        # d[ftype] = re.compile( b'(?=' + re.escape(signature) + b')' )
     return d
 
 signature_regexps = compute_signature_regexps()
