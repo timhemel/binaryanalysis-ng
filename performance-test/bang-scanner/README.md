@@ -36,3 +36,26 @@ python3 combine-perftests.py <testdir1> <testdir2> ...
 You can then load the results in a spreadsheet or program to run statistical analysis on.
 
 
+## Unpacker statistics about failed tries
+
+In commit 05b487b71e6385a864383b9ca4d51d0ef11f4d20, profiling code was added to the unpackers to log the time (real time in ns) needed for each call to the unpacker.
+
+To process these log, use:
+
+```
+bash unpacktries-stats.sh < unpackdir/logs/unpack.log
+```
+
+The output shows the following columns:
+
+|----------|-----------------------------|
+| unpacker | name of the unpack function |
+| #pass | number of successful unpacks |
+| #fail | number of failed unpacks |
+| time-pass | time spent on successful unpacks |
+| time-fail | time spent on failed unpacks |
+| %pass | percentage of time spent on successful unpacks |
+| %fail | percentage of time spent on failed unpacks |
+
+The results are sorted from highest total time to lowest total time.
+
