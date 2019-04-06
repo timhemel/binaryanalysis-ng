@@ -566,6 +566,7 @@ Note: sometimes, more experiments were done without committing the code in betwe
 represent the actual code that has been profiled.
 
 run	branch		commit
+======= =============== =========================================
 0001	performance	4a5b610aa63798a373dff3fa4de08f189d3ebe9f
 0002	performance	4a5b610aa63798a373dff3fa4de08f189d3ebe9f
 0003	performance	4a5b610aa63798a373dff3fa4de08f189d3ebe9f
@@ -581,7 +582,5 @@ run	branch		commit
 0013	performance	ad00d846d5b8f708c92e5e03f9e3c6a2636418b3
 0014	performance	c4e2e99d0acb9adc070940e209cca03da8e76725
 
--rw-rw-r--. 1 tim tim 134890 Apr  5 00:52 profile-TEW-636APB-1002.bin.stats
--rw-rw-r--. 1 tim tim 203924 Apr  5 00:58 profile-DSM_DS112+_23824.pat.stats
 
 
