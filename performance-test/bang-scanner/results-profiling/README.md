@@ -628,6 +628,70 @@ To improve performance, we can:
 * reduce the number of failed unpackings
 
 
+Hypothesis: need for Base64 unpacks can be reduced.
+
+If we split the base64 failures, we see:
+
+|----:|------------------------------------------|
+| 537 | invalid character not in base16/32/64 alphabets |
+| 87 | inconsistent line wrapping |
+| 64 | not a valid base64 file |
+| 4 | file too small |
+
+The check for invalid characters checks if the file contains a space in the middle.
+
+We introduced two functions, `check_base64_chars`, `check_base64_spaces` and `check_base64_consistent_lines`. For each check, the file is opened and read.
+
+On the test file, less files were identified as base64:
+
+```
+openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/etc/openwrt_version-base64-1/unpacked.base64
+openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/etc/shells-base64-1/unpacked.base64
+openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/etc/modules.d/25-nls-utf8-base64-1/unpacked.base64
+openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/etc/modules.d/42-ip6tables-base64-1/unpacked.base64
+openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/etc/modules.d/brcmfmac-base64-1/unpacked.base64
+openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/etc/modules.d/brcmutil-base64-1/unpacked.base64
+openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/usr/lib/opkg/info/iw.list-base64-1/unpacked.base64
+openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/usr/lib/opkg/info/lua.list-base64-1/unpacked.base64
+openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/usr/lib/opkg/info/rpcd.conffiles-base64-1/unpacked.base
+64
+```
+
+These are all false positives. The unpack statistics show the following:
+
+```
+before: unpackBase64             9   692      1571611     36132697       4.17      95.83
+after:  unpackBase64             0   701            0     29255430       0.00     100.00
+```
+
+The new base64 code costs  29255431 / ( 1571611  +  36132697) = 0.7759174362781038 of the execution time of the old code.
+
+In profile run 0015, we profiled the whole unpacking routine:
+
+```
+/home/tim/binaryanalysis-ng/src/test/../bangunpack.py:10495(unpackBase64)
+->     707    0.001    0.011  /home/tim/binaryanalysis-ng/src/test/../ScanEnvironment.py:83(unpack_path)
+       697    0.007    0.008  /home/tim/binaryanalysis-ng/src/test/../bangunpack.py:10464(check_base64_chars)
+        18    0.000    0.000  /home/tim/binaryanalysis-ng/src/test/../bangunpack.py:10471(check_base64_spaces)
+        18    0.000    0.000  /home/tim/binaryanalysis-ng/src/test/../bangunpack.py:10479(check_base64_consistent_lines)
+        15    0.000    0.000  /usr/lib64/python3.7/base64.py:97(standard_b64decode)
+        45    0.000    0.000  /usr/lib64/python3.7/base64.py:180(b32decode)
+        15    0.000    0.000  /usr/lib64/python3.7/base64.py:253(b16decode)
+         6    0.000    0.000  /usr/lib64/python3.7/posixpath.py:75(join)
+       233    0.000    0.000  {built-in method builtins.chr}
+        12    0.000    0.000  {built-in method builtins.len}
+       754    0.008    0.011  {built-in method io.open}
+        12    0.000    0.000  {method 'append' of 'list' objects}
+       712    0.002    0.002  {method 'close' of '_io.BufferedReader' objects}
+         6    0.000    0.000  {method 'close' of '_io.BufferedWriter' objects}
+        36    0.000    0.000  {method 'close' of '_io.TextIOWrapper' objects}
+        15    0.000    0.000  {method 'readinto' of '_io.BufferedReader' objects}
+        30    0.000    0.000  {method 'replace' of 'bytearray' objects}
+         6    0.000    0.000  {method 'write' of '_io.BufferedWriter' objects}
+```
+
+697 - 18 = 679 files are rejected in the first check `check_base64_chars`.
+
 
 # Overview of runs
 
