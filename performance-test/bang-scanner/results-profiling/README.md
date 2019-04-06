@@ -565,22 +565,22 @@ There is a difference of 130 calls, which means that 130 extra signature candida
 Note: sometimes, more experiments were done without committing the code in between. Therefore, the commit does not always
 represent the actual code that has been profiled.
 
-run	branch		commit
-======= =============== =========================================
-0001	performance	4a5b610aa63798a373dff3fa4de08f189d3ebe9f
-0002	performance	4a5b610aa63798a373dff3fa4de08f189d3ebe9f
-0003	performance	4a5b610aa63798a373dff3fa4de08f189d3ebe9f
-0004	performance	effe55867078ed96505883279e49af5a0c8d832c
-0005	performance	787b19b222cc024fd10d12335414eea60d750d7b
-0006	performance	7ad6f61c02349bc5e2f84c2d641dc938ee0fd9e6
-0007	performance	592937d078ef2e326d6b544f01ec4c971ef1214d
-0008	performance	592937d078ef2e326d6b544f01ec4c971ef1214d
-0009	performance	1d679c7bee0aa184e0845059733fa4160b7bc907
-0010	performance	ee38e0ab6f13caaff3c99f7e3bcfb2549013c2f5
-0011	performance	e1f28d6682d7a802b3db2b5ded6b0e29726b4d89
-0012	performance	ca7b404764b1f2a132f96562782cf203ecfc7914
-0013	performance	ad00d846d5b8f708c92e5e03f9e3c6a2636418b3
-0014	performance	c4e2e99d0acb9adc070940e209cca03da8e76725
+| run	 | branch	 | commit                                   |
+|--------|---------------|------------------------------------------|
+| 0001	 | performance	 | 4a5b610aa63798a373dff3fa4de08f189d3ebe9f |
+| 0002	 | performance	 | 4a5b610aa63798a373dff3fa4de08f189d3ebe9f |
+| 0003	 | performance	 | 4a5b610aa63798a373dff3fa4de08f189d3ebe9f |
+| 0004	 | performance	 | effe55867078ed96505883279e49af5a0c8d832c |
+| 0005	 | performance	 | 787b19b222cc024fd10d12335414eea60d750d7b |
+| 0006	 | performance	 | 7ad6f61c02349bc5e2f84c2d641dc938ee0fd9e6 |
+| 0007	 | performance	 | 592937d078ef2e326d6b544f01ec4c971ef1214d |
+| 0008	 | performance	 | 592937d078ef2e326d6b544f01ec4c971ef1214d |
+| 0009	 | performance	 | 1d679c7bee0aa184e0845059733fa4160b7bc907 |
+| 0010	 | performance	 | ee38e0ab6f13caaff3c99f7e3bcfb2549013c2f5 |
+| 0011	 | performance	 | e1f28d6682d7a802b3db2b5ded6b0e29726b4d89 |
+| 0012	 | performance	 | ca7b404764b1f2a132f96562782cf203ecfc7914 |
+| 0013	 | performance	 | ad00d846d5b8f708c92e5e03f9e3c6a2636418b3 |
+| 0014	 | performance	 | c4e2e99d0acb9adc070940e209cca03da8e76725 |
 
 
 
