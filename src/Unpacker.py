@@ -24,6 +24,10 @@ import re
 import os
 import shutil
 import stat
+import time
+import logging
+
+from banglogging import log
 
 import bangunpack
 import bangsignatures
@@ -129,7 +133,12 @@ class Unpacker:
     def try_unpack_file_for_extension(self, fileresult, scanenvironment, relpath, extension):
         try:
             self.make_data_unpack_directory(relpath, bangsignatures.extensionprettyprint[extension])
-            return bangsignatures.unpack_file_with_extension(fileresult, scanenvironment, extension, self.dataunpackdirectory)
+            t1 = time.perf_counter_ns()
+            r =  bangsignatures.unpack_file_with_extension(fileresult, scanenvironment, extension, self.dataunpackdirectory)
+            t2 = time.perf_counter_ns()
+            unpacker = bangsignatures.extensiontofunction[extension].__name__
+            log(logging.DEBUG, "try_unpack_file_with_extension[%s]: %s = %s" % ( unpacker, r['status'], t2-t1))
+            return r
         except AttributeError as ex:
             print(ex)
             self.remove_data_unpack_directory()
@@ -256,7 +265,12 @@ class Unpacker:
 
     def try_unpack_file_for_signatures(self, fileresult, scanenvironment, signature, offset):
         try:
-            return bangsignatures.signaturetofunction[signature](fileresult, scanenvironment, offset, self.dataunpackdirectory)
+            t1 = time.perf_counter_ns()
+            r = bangsignatures.signaturetofunction[signature](fileresult, scanenvironment, offset, self.dataunpackdirectory)
+            t2 = time.perf_counter_ns()
+            unpacker = bangsignatures.signaturetofunction[signature].__name__
+            log(logging.DEBUG, "try_unpack_file_for_signatures[%s]: %s = %s" % ( unpacker, r['status'], t2-t1))
+            return r
         except AttributeError as ex:
             print(ex)
             self.remove_data_unpack_directory()
@@ -264,7 +278,12 @@ class Unpacker:
 
     def try_textonlyfunctions(self, fileresult, scanenvironment, filetype, offset):
         try:
-            return bangsignatures.textonlyfunctions[filetype](fileresult, scanenvironment, 0, self.dataunpackdirectory)
+            t1 = time.perf_counter_ns()
+            r = bangsignatures.textonlyfunctions[filetype](fileresult, scanenvironment, 0, self.dataunpackdirectory)
+            t2 = time.perf_counter_ns()
+            unpacker = bangsignatures.textonlyfunctions[filetype].__name__
+            log(logging.DEBUG, "try_textonlyfunctions[%s]: %s = %s" % ( unpacker, r['status'], t2-t1))
+            return r
         except Exception as e:
             # TODO: make exception more specific, it is too general
             print(e)
