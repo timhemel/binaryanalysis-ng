@@ -560,6 +560,75 @@ We can see how many more signature candidates were found by looking at the numbe
 
 There is a difference of 130 calls, which means that 130 extra signature candidates were detected.
 
+
+# Trying to unpack a file
+
+For a run on the openwrt test file, with commit 456874809437342480e0353a3f14921b901bbd98 we gathered the following results from the logs:
+
+| phase   | calls |
+|---------|-------|
+| TRYING  | 6123  |
+| FAIL    | 5831  |
+| SUCCESS | 310   |
+
+FAIL and SUCCESS together are more than TRYING, because extension based unpacks also log FAIL or SUCCESS events.
+Still, the number of failed unpackings is large.
+
+In commit 05b487b71e6385a864383b9ca4d51d0ef11f4d20, profiling code was added to the unpackers to log the time (real time in ns) needed for each call to the unpacker. The results show the following
+
+```
+unpacker             #pass #fail    time-pass    time-fail      %pass      %fail
+--------------------------------------------------------------------------------
+unpackExt2               1    22  10310310095      2818750      99.97       0.03
+unpackGzip               2     0   1111139923            0     100.00       0.00
+unpackFAT                0    53            0    118241970       0.00     100.00
+unpackIHex               0   702            0     83890102       0.00     100.00
+unpackSREC               0   702            0     80981028       0.00     100.00
+unpackKernelConfig       1   701      1306310     39556386       3.20      96.80
+unpackBase64             9   692      1571611     36132697       4.17      95.83
+unpackJPEG               0   951            0     33581712       0.00     100.00
+unpackScript            17   675       902061     32112441       2.73      97.27
+unpackELF              112    46     26659227      3055226      89.72      10.28
+unpackICO                1   183     20781810      7660523      73.07      26.93
+unpackCSS                2     0     28019509            0     100.00       0.00
+unpackPNM                0   560            0     19022204       0.00     100.00
+unpackDeviceTree       106     0     17410010            0     100.00       0.00
+unpackXML                5     0     11318811            0     100.00       0.00
+unpackLZMA               0    51            0     11156410       0.00     100.00
+unpackCompress           0    15            0     10132124       0.00     100.00
+unpackTar                0     3            0      8462828       0.00     100.00
+unpackJFFS2              0   128            0      5643613       0.00     100.00
+unpackPNG               22     0      5230492            0     100.00       0.00
+unpackGIF               20     0      3905343            0     100.00       0.00
+unpackTerminfo           0    94            0      3843477       0.00     100.00
+unpackMinix1L            0    71            0      2758429       0.00     100.00
+unpackAIFF               0    70            0      2491883       0.00     100.00
+unpack_pak               0    52            0      1821411       0.00     100.00
+unpackDex                0    28            0      1101480       0.00     100.00
+unpackTRX                2     0       721674            0     100.00       0.00
+unpackXZ                 0     2            0       643950       0.00     100.00
+unpackANI                0    11            0       639990       0.00     100.00
+unpackJSON               6     0       476531            0     100.00       0.00
+unpackBMP                0    10            0       361583       0.00     100.00
+unpackCpio               0     5            0       287560       0.00     100.00
+unpackShadow             1     1        85350        54658      60.96      39.04
+unpackSGI                0     3            0       105041       0.00     100.00
+unpackGroup              1     0        68958            0     100.00       0.00
+unpackPasswd             1     0        67449            0     100.00       0.00
+unpackFstab              1     0        54307            0     100.00       0.00
+--------------------------------------------------------------------------------
+total                  310  5831  11540029471    506557476      95.80       4.20
+```
+
+The unpacker that consumes most, `unpackExt2`, only spent 0.03% of its time on failed unpackings. `unpackFAT` on the other hand, spent all of the 118241970 ns (118 ms) on failed unpacks.
+
+To improve performance, we can:
+* make successful unpackings more efficient
+* make failed unpackings more efficient
+* reduce the number of failed unpackings
+
+
+
 # Overview of runs
 
 Note: sometimes, more experiments were done without committing the code in between. Therefore, the commit does not always
