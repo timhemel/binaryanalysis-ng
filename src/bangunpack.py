@@ -10458,6 +10458,38 @@ def unpackPythonPkgInfo(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': filesize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+# base64 bytes including whitespace
+base64_bytes = [ chr(x) in set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\n\r\t ') for x in range(0,256) ]
+
+def check_base64_chars(f):
+    """assumes a file opened as bytes"""
+    b = True
+    for l in f:
+        b = b and all(base64_bytes[x] for x in l)
+    return b
+
+def check_base64_spaces(f):
+    """assumes a file opened as text"""
+    # TODO
+    b = True
+    for l in f:
+        b = b and all(not x.isspace() for x in l.strip())
+    return b
+
+def check_base64_consistent_lines(f):
+    """assumes a file opened as text"""
+    prev_len = sys.maxsize
+    linesizes = set()
+    for l in f:
+        n = len(l.strip())
+        if len(l.strip()) > prev_len:
+            return False,False
+        prev_len = n
+        linesizes.add(n)
+        if len(linesizes) > 2:
+            return False,False
+    return (prev_len == sys.maxsize),True
+
 
 # Base64/32/16
 def unpackBase64(fileresult, scanenvironment, offset, unpackdir):
@@ -10482,31 +10514,55 @@ def unpackBase64(fileresult, scanenvironment, offset, unpackdir):
         return {'status': False, 'error': unpackingerror}
 
     # open the file in text mode
-    checkfile = open(filename_full, 'r')
-    linelengths = set()
-    linectr = 0
-    prevlinelength = sys.maxsize
-    for i in checkfile:
-        if " " in i.strip():
-            checkfile.close()
-            unpackingerror = {'offset': offset, 'fatal': False,
-                              'reason': 'invalid character not in base16/32/64 alphabets'}
-            return {'status': False, 'error': unpackingerror}
-        if len(i.strip()) != 0:
-            if len(i) > prevlinelength:
-                checkfile.close()
-                unpackingerror = {'offset': offset, 'fatal': False,
-                                  'reason': 'inconsistent line wrapping'}
-                return {'status': False, 'error': unpackingerror}
-            prevlinelength = len(i)
-            linelengths.add(len(i))
-            if len(linelengths) > 2:
-                checkfile.close()
-                unpackingerror = {'offset': offset, 'fatal': False,
-                                  'reason': 'inconsistent line wrapping'}
-                return {'status': False, 'error': unpackingerror}
-        linectr += 1
+    # checkfile = open(filename_full, 'r')
+    # linelengths = set()
+    # linectr = 0
+    # prevlinelength = sys.maxsize
+    # for i in checkfile:
+    #     if " " in i.strip():
+    #         checkfile.close()
+    #         unpackingerror = {'offset': offset, 'fatal': False,
+    #                           'reason': 'invalid character not in base16/32/64 alphabets'}
+    #         return {'status': False, 'error': unpackingerror}
+    #     if len(i.strip()) != 0:
+    #         if len(i) > prevlinelength:
+    #             checkfile.close()
+    #             unpackingerror = {'offset': offset, 'fatal': False,
+    #                               'reason': 'inconsistent line wrapping'}
+    #             return {'status': False, 'error': unpackingerror}
+    #         prevlinelength = len(i)
+    #         linelengths.add(len(i))
+    #         if len(linelengths) > 2:
+    #             checkfile.close()
+    #             unpackingerror = {'offset': offset, 'fatal': False,
+    #                               'reason': 'inconsistent line wrapping'}
+    #             return {'status': False, 'error': unpackingerror}
+    #     linectr += 1
+    # checkfile.close()
+
+    checkfile = open(filename_full, 'rb')
+    ok_chars = check_base64_chars(checkfile)
     checkfile.close()
+    if not ok_chars:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid character not in base16/32/64 alphabets'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile = open(filename_full, 'r')
+    ok_spaces = check_base64_spaces(checkfile)
+    checkfile.close()
+    if not ok_spaces:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'invalid character not in base16/32/64 alphabets'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile = open(filename_full, 'r')
+    has_single_line, ok_lines = check_base64_consistent_lines(checkfile)
+    checkfile.close()
+    if not ok_lines:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'inconsistent line wrapping'}
+        return {'status': False, 'error': unpackingerror}
 
     # now read the whole file and run it through various decoders
     checkfile = open(filename_full, 'rb')
@@ -10519,7 +10575,8 @@ def unpackBase64(fileresult, scanenvironment, offset, unpackdir):
     decoded = False
     encoding = ''
 
-    if linectr == 1:
+    # if linectr == 1:
+    if has_single_line:
         # a few sanity checks: there are frequently false positives
         # for MD5, SHA1, SHA256, etc.
         if len(base64contents) in [32, 40, 64]:
