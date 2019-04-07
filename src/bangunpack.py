@@ -9917,11 +9917,31 @@ def unpackJavaManifest(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': filesize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+# first header line, was changed in Linux kernel commit
+# e54e692ba613c2170c66ce36a3791c009680af08
+headerre = re.compile('# Automatically generated make config: don\'t edit$')
+headerre_alt = re.compile('# Automatically generated file; DO NOT EDIT.$')
+
+headerre2 = re.compile('# Linux kernel version: ([\d.]+)$')
+headerre2_alt = re.compile('# Linux/[\w\-]+ ([\w.\-]+) Kernel Configuration$')
+headerre3 = re.compile('# (\w{3} \w{3} [\d ]+ \d{2}:\d{2}:\d{2} \d{4})$')
+headerre4 = re.compile('# Compiler: ([\w.\-() ]+)$')
+
+# regular expression for the configuration header lines
+configheaderre = re.compile('# [\w/\-;:. ,()&+]+$')
+
+# regular expressions for the lines with configuration
+configre = re.compile('# CONFIG_\w+ is not set$')
+configre2 = re.compile('(CONFIG_\w+)=([ynm])$')
+configre3 = re.compile('(CONFIG_\w+)=([\w"\-/.$()+]+)$')
+
 
 # Kernel configuration files that are embedded in Linux kernel
 # images: text only
 def unpackKernelConfig(fileresult, scanenvironment, offset, unpackdir):
     '''Verify a Linux kernel configuration file.'''
+    global headerre, headerre_alt, headerre2, headerre2_alt, headerre3, \
+        headerre4, configheaderre, configre, configre2, configre3
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
@@ -9932,24 +9952,6 @@ def unpackKernelConfig(fileresult, scanenvironment, offset, unpackdir):
     # store some of the metadata for later use
     kernelconfig = {}
     kernelres = {}
-
-    # first header line, was changed in Linux kernel commit
-    # e54e692ba613c2170c66ce36a3791c009680af08
-    headerre = re.compile('# Automatically generated make config: don\'t edit$')
-    headerre_alt = re.compile('# Automatically generated file; DO NOT EDIT.$')
-
-    headerre2 = re.compile('# Linux kernel version: ([\d\.]+)$')
-    headerre2_alt = re.compile('# Linux/[\w\d\-_]+ ([\d\w\.\-_]+) Kernel Configuration$')
-    headerre3 = re.compile('# (\w{3} \w{3} [\d ]+ \d{2}:\d{2}:\d{2} \d{4})$')
-    headerre4 = re.compile('# Compiler: ([\w\d\.\-() ]+)$')
-
-    # regular expression for the configuration header lines
-    configheaderre = re.compile('# [\w\d/\-;:\. ,()&+]+$')
-
-    # regular expressions for the lines with configuration
-    configre = re.compile('# CONFIG_[\w\d_]+ is not set$')
-    configre2 = re.compile('(CONFIG_[\w\d_]+)=([ynm])$')
-    configre3 = re.compile('(CONFIG_[\w\d_]+)=([\w\d"\-/\.$()+]+$)')
 
     # open the file in text only mode
     checkfile = open(filename_full, 'r')
