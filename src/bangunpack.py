@@ -9961,53 +9961,54 @@ def unpackKernelConfig(fileresult, scanenvironment, offset, unpackdir):
     # followed by sections
     # followed by configuration statements
     for i in checkfile:
+        line = i.strip()
         # skip empty lines
-        if i.strip() == '':
+        if line == '':
             continue
         # skip empty comment lines
-        if i.strip() == '#':
+        if line == '#':
             continue
         linematched = False
-        if i.strip().startswith('#'):
-            if configre.match(i.strip()) is not None:
+        if line[0] == '#':
+            if configre.match(line) is not None:
                 linematched = True
                 kernelconfigfound = True
             else:
                 if not headerfound:
-                    if headerre.match(i.strip()) is not None:
+                    if headerre.match(line) is not None:
                         linematched = True
-                    elif headerre_alt.match(i.strip()) is not None:
+                    elif headerre_alt.match(line) is not None:
                         linematched = True
-                    elif headerre2.match(i.strip()) is not None:
-                        kernelversion = headerre2.match(i.strip()).groups()[0]
+                    elif headerre2.match(line) is not None:
+                        kernelversion = headerre2.match(line).groups()[0]
                         kernelres['version'] = kernelversion
                         linematched = True
-                    elif headerre2_alt.match(i.strip()) is not None:
-                        kernelversion = headerre2_alt.match(i.strip()).groups()[0]
+                    elif headerre2_alt.match(line) is not None:
+                        kernelversion = headerre2_alt.match(line).groups()[0]
                         kernelres['version'] = kernelversion
                         linematched = True
-                    elif headerre3.match(i.strip()) is not None:
-                        kerneldate = headerre3.match(i.strip()).groups()[0]
+                    elif headerre3.match(line) is not None:
+                        kerneldate = headerre3.match(line).groups()[0]
                         kernelres['date'] = kerneldate
                         linematched = True
                         headerfound = True
-                    elif headerre4.match(i.strip()) is not None:
-                        compiler = headerre4.match(i.strip()).groups()[0]
+                    elif headerre4.match(line) is not None:
+                        compiler = headerre4.match(line).groups()[0]
                         kernelres['compiler'] = compiler
                         linematched = True
                         headerfound = True
                 else:
-                    if configheaderre.match(i.strip()) is not None:
+                    if configheaderre.match(line) is not None:
                         linematched = True
         else:
-            if configre2.match(i.strip()) is None:
-                if configre3.match(i.strip()) is not None:
-                    (conf, val) = configre3.match(i.strip()).groups()
+            if configre2.match(line) is None:
+                if configre3.match(line) is not None:
+                    (conf, val) = configre3.match(line).groups()
                     kernelconfig[conf] = val
                     linematched = True
                     kernelconfigfound = True
             else:
-                (conf, val) = configre2.match(i.strip()).groups()
+                (conf, val) = configre2.match(line).groups()
                 kernelconfig[conf] = val
                 linematched = True
                 kernelconfigfound = True
