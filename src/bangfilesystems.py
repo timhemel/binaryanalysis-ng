@@ -2721,8 +2721,9 @@ def unpackFAT(fileresult, scanenvironment, offset, unpackdir):
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'invalid bytes per sector'}
         return {'status': False, 'error': unpackingerror}
-    # TODO: use << and >> for this
-    if pow(2, int(math.log(bytespersector, 2))) != bytespersector:
+    # if pow(2, int(math.log(bytespersector, 2))) != bytespersector:
+    # pow2(x) == ((x != 0) && !(x & (x - 1)))
+    if (bytespersector & (bytespersector-1)):
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'invalid bytes per sector'}
@@ -2732,7 +2733,8 @@ def unpackFAT(fileresult, scanenvironment, offset, unpackdir):
     # logical sectors per cluster
     checkbytes = checkfile.read(1)
     sectorspercluster = ord(checkbytes)
-    if sectorspercluster not in [1, 2, 4, 8, 16, 32, 64, 128]:
+    # if sectorspercluster not in [1, 2, 4, 8, 16, 32, 64, 128]:
+    if sectorspercluster == 0 or (sectorspercluster & (sectorspercluster-1)):
         checkfile.close()
         unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
                           'reason': 'invalid sectors per cluster'}
