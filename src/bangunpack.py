@@ -6661,24 +6661,22 @@ def unpackIHex(fileresult, scanenvironment, offset, unpackdir):
     # process each line until the end of the IHex data is read
     try:
         for line in checkfile:
-            if not line.startswith(':'):
-                # there could possibly be comments, starting with '#'
-                if line.startswith('#'):
-                    unpackedsize += len(line)
-                    continue
-                checkfile.close()
-                outfile.close()
-                os.unlink(outfile_full)
-                unpackingerror = {'offset': offset+unpackedsize,
-                                  'fatal': False,
-                                  'reason': 'line does not start with :'}
-                return {'status': False, 'error': unpackingerror}
+            l = line.strip()
+            if l == '':
+                unpackedsize += len(line)
+                continue # TODO: skip empty lines or give error?
+            if l[0] == '#':
+                unpackedsize += len(line)
+                continue # skip comments
+            # because of the earlier check, l always starts with ':'
+
             # minimum length for a line is:
             # 1 + 2 + 4 + 2 + 2 = 11
             # Each byte uses two characters. The start code
             # uses 1 character.
             # That means that each line has an uneven length.
-            if len(line.strip()) < 11 or len(line.strip()) % 2 != 1:
+            line_length = len(l)
+            if line_length < 11 or line_length % 2 == 0:
                 checkfile.close()
                 outfile.close()
                 os.unlink(outfile_full)
@@ -6689,7 +6687,9 @@ def unpackIHex(fileresult, scanenvironment, offset, unpackdir):
 
             try:
                 bytescount = int.from_bytes(bytes.fromhex(line[1:3]), byteorder='big')
-            except:
+            except Exception as e:
+                # TODO: make exception more specific
+                print("unpackIHex: [1] exception",e)
                 checkfile.close()
                 outfile.close()
                 os.unlink(outfile_full)
@@ -6698,7 +6698,7 @@ def unpackIHex(fileresult, scanenvironment, offset, unpackdir):
                                   'reason': 'not valid hex data'}
                 return {'status': False, 'error': unpackingerror}
 
-            if 3 + bytescount + 2 > len(line.strip()):
+            if 3 + bytescount + 2 > line_length:
                 checkfile.close()
                 outfile.close()
                 os.unlink(outfile_full)
@@ -6711,7 +6711,9 @@ def unpackIHex(fileresult, scanenvironment, offset, unpackdir):
             # the record type is next from 7:9
             try:
                 recordtype = int.from_bytes(bytes.fromhex(line[7:9]), byteorder='big')
-            except:
+            except Exception as e:
+                # TODO: make exception more specific
+                print("unpackIHex: [2] exception",e)
                 checkfile.close()
                 outfile.close()
                 os.unlink(outfile_full)
@@ -6748,7 +6750,9 @@ def unpackIHex(fileresult, scanenvironment, offset, unpackdir):
                 outfile.write(ihexdata)
             seenrecordtypes.add(recordtype)
 
-            unpackedsize += len(line.strip()) + len(checkfile.newlines)
+            # TODO: checkfile.newlines is the # of newlines translated so far
+            # unpackedsize += line_length + len(checkfile.newlines)
+            unpackedsize += len(line)
 
             if endofihex:
                 break
