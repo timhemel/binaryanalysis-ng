@@ -734,6 +734,36 @@ In 0003, the checks that were done were removed and a few more optimizations wer
 
 The optimization for successful unpacking is difficult to measure because it is only executed once.
 
+# Kernelconfig
+
+Improvement 1: replace `i.strip()` with a local variable.
+
+```
+DSM-0003:
+     6021    0.085    0.000    0.464    0.000 /home/tim/binaryanalysis-ng/src/test/../bangunpack.py:9919(unpackKernelConfig)
+DSM-0004:
+     6177    0.083    0.000    0.468    0.000 /home/tim/binaryanalysis-ng/src/test/../bangunpack.py:9923(unpackKernelConfig)
+```
+
+Improvement 2:
+compile regexps outside the function.
+
+```
+DSM-0005:
+     6177    0.064    0.000    0.373    0.000 /home/tim/binaryanalysis-ng/src/test/../bangunpack.py:9948(unpackKernelConfig)
+```
+Improvement 3:
+prescanning with a simple regular expression.
+
+```
+DSM-0003:
+unpackKernelConfig       0  6021            0    373853631       0.00     100.00
+DSM-0006:
+unpackKernelConfig       0  6177            0    324529431       0.00     100.00
+```
+
+The improvement is small.
+
 
 # Overview of runs
 
