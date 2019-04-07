@@ -95,7 +95,7 @@ class TestScanJob(TestBase):
             if e.e.__class__ != QueueEmptyError:
                 raise e
         result = self.result_queue.get()
-        self.assertSetEqual(result.labels,set(['text','base64','urlsafe']))
+        self.assertSetEqual(result.labels,set(['text']))
 
     def test_dhcpv6sh_has_correct_labels(self):
         # /home/tim/bang-test-scrap/bang-scan-wd8il1i5/unpack/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/lib/netifd/proto/dhcpv6.sh
@@ -134,10 +134,10 @@ class TestScanJob(TestBase):
         self.assertEqual(str(result2.filename), str(fn)+'-gzip-1/hello')
 
     def test_find_signatures_methods_equivalent(self):
-        # fn = pathlib.Path("a/hello.gz")
-        # self._copy_file_from_testdata(fn)
-        # fn_full = self.unpackdir / fn
-        fn_full = pathlib.Path("/home/tim/bang-testdata/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz")
+        fn = pathlib.Path("a/hello.gz")
+        self._copy_file_from_testdata(fn)
+        fn_full = self.unpackdir / fn
+        # fn_full = pathlib.Path("/home/tim/bang-testdata/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz")
         filesize = fn_full.stat().st_size
 
         unpacker = Unpacker(self.unpackdir)
@@ -162,9 +162,6 @@ class TestScanJob(TestBase):
             for s,v in bangsignatures.signatures.items():
                 os_no_iter.update(unpacker.find_offsets_for_signature(s, v, filesize))
 
-            print("sets equal?", sorted(os_regexps_iter),sorted(os_no_iter))
-            print("sets equal? [regexps]", os_regexps_iter == os_no_iter)
-            print("sets equal? [strings]", os_string_iter == os_no_iter)
             offsets_no_iter.update(os_no_iter)
             offsets_regexps_iter.update(os_regexps_iter)
             offsets_string_iter.update(os_string_iter)
