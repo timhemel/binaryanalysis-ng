@@ -246,6 +246,7 @@ def main(argv):
             # set the size of bytes to be read during scanning hashes
             readsize = 10240,
             createbytecounter = options.createbytecounter,
+            createjson = options.createjson,
             tlshmaximum = options.tlshmaximum,
             synthesizedminimum = 10,
             logging = banglogging.uselogging,
@@ -344,16 +345,16 @@ def main(argv):
         PickleReporter(picklefile).report(scanresult)
         picklefile.close()
 
-        jsonfile = open(scandirectory / 'bang.json', 'w')
-        JsonReporter(jsonfile).report(scanresult)
-        jsonfile.close()
+        if options.createjson:
+            jsonfile = open(scandirectory / 'bang.json', 'w')
+            JsonReporter(jsonfile).report(scanresult)
+            jsonfile.close()
 
         if options.writereport:
             reportfile = open(scandirectory / 'report.txt', 'w')
             HumanReadableReporter(reportfile).report(scanresult)
             reportfile.close()
 
-        # The end.
         log(logging.INFO, "Finished scanning %s" % checkfile)
         if options.uselogging:
             # flush any remaining data

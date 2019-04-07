@@ -6,7 +6,7 @@ import unittest
 import collections
 
 _scriptdir = os.path.dirname(__file__)
-sys.path.insert(0,os.path.join(_scriptdir,'..'))
+sys.path.insert(0, os.path.join(_scriptdir, '..'))
 
 from bangsignatures import maxsignaturesoffset
 import bangfilescans
@@ -70,6 +70,7 @@ class TestBase(unittest.TestCase):
             maxbytes = max(200000, maxsignaturesoffset+1),
             readsize = 10240,
             createbytecounter = False,
+            createjson = True,
             tlshmaximum = sys.maxsize,
             synthesizedminimum = 10,
             logging = False,

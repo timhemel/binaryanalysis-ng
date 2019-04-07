@@ -294,7 +294,7 @@ class ScanJob:
 
                     unpackresult = unpacker.try_unpack_file_for_signatures(
                             self.fileresult, self.scanenvironment,
-                            signature, offset) 
+                            signature, offset)
                     if unpackresult is None:
                         continue
 

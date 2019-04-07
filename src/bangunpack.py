@@ -840,7 +840,7 @@ def unpackTimeZone(fileresult, scanenvironment, offset, unpackdir):
         outfile = open(outfile_full, 'wb')
         os.sendfile(outfile.fileno(), checkfile.fileno(), offset, unpackedsize)
         outfile.close()
-        unpackedfilesandlabels.append((outfile_full, ['timezone', 'resource', 'unpacked']))
+        unpackedfilesandlabels.append((outfile_rel, ['timezone', 'resource', 'unpacked']))
         checkfile.close()
         return {'status': True, 'length': unpackedsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
@@ -2563,7 +2563,7 @@ def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False)
                 if z.filename == 'EGG-INFO/PKG-INFO':
                     labels.append('python egg')
                 if z.filename == 'AndroidManifest.xml' or z.filename == 'classes.dex':
-                    if filename.suffix == '.apk':
+                    if filename_full.suffix == '.apk':
                         labels.append('android')
                         labels.append('apk')
 
@@ -2660,7 +2660,7 @@ def unpackZip(fileresult, scanenvironment, offset, unpackdir, dahuaformat=False)
     # else carve the file
     targetfile_rel = os.path.join(unpackdir, 'encrypted.zip')
     targetfile_full = scanenvironment.unpack_path(targetfile_rel)
-    targetfile = open(targetfilename, 'wb')
+    targetfile = open(targetfile_full, 'wb')
     os.sendfile(targetfile.fileno(), checkfile.fileno(), offset, unpackedsize)
     targetfile.close()
     checkfile.close()
@@ -4020,7 +4020,7 @@ def unpackFont(fileresult, scanenvironment, offset, unpackdir,
     # be used for the extracted file.
     if fontname != '':
         try:
-            fontname = fontname.decode()
+            fontname = bytes(fontname).decode()
             outfile_rel = os.path.join(unpackdir, fontname + "." + fontextension)
         except UnicodeDecodeError:
             outfile_rel = os.path.join(unpackdir, "unpacked." + fontextension)
@@ -7479,13 +7479,16 @@ def unpackRPM(fileresult, scanenvironment, offset, unpackdir):
         if payload == b'cpio':
             # first move the payload file to a different location
             # to avoid any potential name clashes
+            payloadsize = payloadfile_full.stat().st_size
             payloaddir = pathlib.Path(tempfile.mkdtemp(dir=scanenvironment.temporarydirectory))
-            shutil.move(payloadfile_full, payloaddir)
+            shutil.move(str(payloadfile_full), payloaddir)
 
+            # create a file result object and pass it to the CPIO unpacker
             fr = FileResult(
-                   scanenvironment.rel_tmp_path(payloaddir) / os.path.basename(payloadfile),
-                   (scanenvironment.rel_tmp_path(payloaddir) / os.path.basename(payloadfile)).parent,
+                   payloaddir / os.path.basename(payloadfile),
+                   (payloaddir / os.path.basename(payloadfile)).parent,
                    [])
+            fr.set_filesize(payloadsize)
             unpackresult = unpackCpio(fr, scanenvironment, 0, unpackdir)
             # cleanup
             shutil.rmtree(payloaddir)
@@ -7776,7 +7779,7 @@ def unpackLZ4(fileresult, scanenvironment, offset, unpackdir):
 # https://github.com/lz4/lz4/blob/master/doc/lz4_Frame_format.md#legacy-frame
 def unpackLZ4Legacy(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack LZ4 legacy compressed data.'''
-    filesize = fileresult.size
+    filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
     unpackedfilesandlabels = []
     labels = []
@@ -7842,7 +7845,7 @@ def unpackLZ4Legacy(fileresult, scanenvironment, offset, unpackdir):
                 'filesandlabels': unpackedfilesandlabels}
     else:
         # first write the data to a temporary file
-        temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
+        temporaryfile = tempfile.mkstemp(dir=scanenvironment.temporarydirectory)
         os.sendfile(temporaryfile[0], checkfile.fileno(), offset, unpackedsize)
         os.fdopen(temporaryfile[0]).close()
         checkfile.close()
@@ -10831,7 +10834,10 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
         certres = extractCertificate(filename_full, offset)
         certres['length'] = filesize
         if certres['status']:
-            return certres
+            labels += certres['labels']
+            labels = list(set(labels))
+            return {'status': True, 'length': filesize, 'labels': labels,
+                    'filesandlabels': unpackedfilesandlabels}
 
     # open the file
     checkfile = open(filename_full, 'rb')
@@ -10910,8 +10916,9 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
         tmplabels += certres['labels']
         tmplabels = list(set(tmplabels))
         tmplabels.append('unpacked')
+        outsize = outfile_full.stat().st_size
         unpackedfilesandlabels.append((outfile_rel, tmplabels))
-        return {'status': True, 'length': certres['length'], 'labels': labels,
+        return {'status': True, 'length': outsize, 'labels': labels,
                 'filesandlabels': unpackedfilesandlabels}
 
     # cleanup
@@ -10921,7 +10928,7 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
     return {'status': False, 'error': unpackingerror}
 
 
-def extractCertificate(filename, offset):
+def extractCertificate(filename_full, offset):
     '''Helper method to extract certificate files.'''
     # filesize = fileresult.filesize
     unpackedfilesandlabels = []
@@ -10935,7 +10942,7 @@ def extractCertificate(filename, offset):
         return {'status': False, 'error': unpackingerror}
 
     # First see if a file is in DER format
-    p = subprocess.Popen(["openssl", "asn1parse", "-inform", "DER", "-in", filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(["openssl", "asn1parse", "-inform", "DER", "-in", filename_full], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (outputmsg, errormsg) = p.communicate()
     if p.returncode == 0:
         labels.append("certificate")
@@ -10944,7 +10951,7 @@ def extractCertificate(filename, offset):
                 'filesandlabels': unpackedfilesandlabels}
 
     # then check if it is a PEM
-    p = subprocess.Popen(["openssl", "asn1parse", "-inform", "PEM", "-in", filename], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(["openssl", "asn1parse", "-inform", "PEM", "-in", filename_full], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (outputmsg, errormsg) = p.communicate()
     if p.returncode == 0:
         # there could be several certificates or keys
@@ -10954,7 +10961,7 @@ def extractCertificate(filename, offset):
         # so add some extra checks.
         isopened = False
         try:
-            checkfile = open(filename, 'r')
+            checkfile = open(filename_full, 'r')
             isopened = True
             for checkline in checkfile:
                 # then check if this is perhaps a private key
@@ -14120,6 +14127,8 @@ def unpack_ambarella(fileresult, scanenvironment, offset, unpackdir):
                      10: 'dsp',
                      11: 'linux'}
 
+    dataunpacked = False
+
     # write the data of each section
     for section in sections:
         if sections[section]['start'] == 0:
@@ -14183,6 +14192,13 @@ def unpack_ambarella(fileresult, scanenvironment, offset, unpackdir):
         outfile.close()
 
         unpackedfilesandlabels.append((outfile_rel, []))
+        dataunpacked = True
+
+    if not dataunpacked:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'invalid offsets'}
+        return {'status': False, 'error': unpackingerror}
 
     if offset == 0 and maxoffset == filesize:
         labels.append('ambarella')
@@ -14266,6 +14282,7 @@ def unpack_romfs_ambarella(fileresult, scanenvironment, offset, unpackdir):
 
     for inode in inodes:
         outfile_rel = os.path.join(unpackdir, inodes[inode]['name'])
+        outfile_full = scanenvironment.unpack_path(outfile_rel)
         # create subdirectories, if any are defined in the file name
         if '/' in inodes[inode]['name']:
             os.makedirs(os.path.dirname(outfile_full), exist_ok=True)

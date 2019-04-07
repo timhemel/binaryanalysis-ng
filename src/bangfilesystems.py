@@ -56,7 +56,7 @@ encodingstotranslate = ['utf-8', 'ascii', 'latin-1', 'euc_jp', 'euc_jis_2004',
 # differ per Linux distribution.
 # This is for the "vanilla" squashfs, not for any vendor specific
 # versions.
-def unpackSquashfs(fileresult, scanenvironment, offset, unpackdir):
+def unpack_squashfs(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack squashfs file system data.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -279,7 +279,7 @@ def local_copy2(src, dest):
 #
 # The zisofs specific bits can be found at:
 # http://libburnia-project.org/wiki/zisofs
-def unpackISO9660(fileresult, scanenvironment, offset, unpackdir):
+def unpack_iso9660(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack an ISO9660 file system.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -1196,7 +1196,7 @@ def unpackISO9660(fileresult, scanenvironment, offset, unpackdir):
 # JFFS2 is a file system that was used on earlier embedded Linux
 # system, although it is no longer the first choice for modern systems,
 # where for example UBI/UBIFS are chosen.
-def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
+def unpack_jffs2(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a JFFS2 file system.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -1222,7 +1222,6 @@ def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
     else:
         bigendian = False
         byteorder = 'little'
-
 
     dataunpacked = False
 
@@ -1552,7 +1551,7 @@ def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
                     fn_rel = os.path.join(unpackdir, inodetofilename[inodenumber])
                     fn_full = scanenvironment.unpack_path(fn_rel)
                     os.symlink(checkbytes.decode(), fn_full)
-                    unpackedfilesandlabels.append((fn_full, ['symbolic link']))
+                    unpackedfilesandlabels.append((fn_rel, ['symbolic link']))
                     dataunpacked = True
                 except UnicodeDecodeError:
                     break
@@ -1699,7 +1698,7 @@ def unpackJFFS2(fileresult, scanenvironment, offset, unpackdir):
 # to this document. The heavy lifting is done using e2tools
 # because it already takes care of deleted files, etc. through
 # e2fsprogs-libs.
-def unpackExt2(fileresult, scanenvironment, offset, unpackdir):
+def unpack_ext2(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack an ext2/ext3/ext4 file system.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -2118,7 +2117,7 @@ def unpackExt2(fileresult, scanenvironment, offset, unpackdir):
 # in section 4
 #
 # For now just focus on files where the entire file is VMDK
-def unpackVMDK(fileresult, scanenvironment, offset, unpackdir):
+def unpack_vmdk(fileresult, scanenvironment, offset, unpackdir):
     '''Convert a VMware VMDK file.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -2186,7 +2185,7 @@ def unpackVMDK(fileresult, scanenvironment, offset, unpackdir):
 # Specification can be found in docs/interop in the QEMU repository
 #
 # https://git.qemu.org/?p=qemu.git;a=blob;f=docs/interop/qcow2.txt;hb=HEAD
-def unpackQcow2(fileresult, scanenvironment, offset, unpackdir):
+def unpack_qcow2(fileresult, scanenvironment, offset, unpackdir):
     '''Convert a QEMU qcow2 file.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -2254,7 +2253,7 @@ def unpackQcow2(fileresult, scanenvironment, offset, unpackdir):
 # VirtualBox VDI
 #
 # https://forums.virtualbox.org/viewtopic.php?t=8046
-def unpackVDI(fileresult, scanenvironment, offset, unpackdir):
+def unpack_vdi(fileresult, scanenvironment, offset, unpackdir):
     '''Convert a VirtualBox VDI file.'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -2473,7 +2472,7 @@ def unpackVDI(fileresult, scanenvironment, offset, unpackdir):
 #
 # which was released under the MIT license. The license can be found in the file
 # README.md in the root of this project.
-def unpackDlinkRomfs(fileresult, scanenvironment, offset, unpackdir):
+def unpack_dlink_romfs(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a D-Link ROMFS'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -2679,7 +2678,7 @@ def unpackDlinkRomfs(fileresult, scanenvironment, offset, unpackdir):
 # FAT file system
 # https://en.wikipedia.org/wiki/File_Allocation_Table
 # https://en.wikipedia.org/wiki/Design_of_the_FAT_file_system
-def unpackFAT(fileresult, scanenvironment, offset, unpackdir):
+def unpack_fat(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack FAT file systems'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -3198,13 +3197,17 @@ def unpackFAT(fileresult, scanenvironment, offset, unpackdir):
                         else:
                             fullname = entryname
                         if fileattributes & 0x10 == 0x10:
-                            # directory
+                            # directory, don't add . and .. to the chain to process
                             if entryname != '..' and entryname != '.':
                                 chainstoprocess.append((cluster, 'directory', os.path.join(chaindir, fullname), 0, fullname))
-                            outfile_rel = os.path.join(unpackdir, chaindir, fullname)
-                            outfile_full = scanenvironment.unpack_path(outfile_rel)
-                            os.makedirs(os.path.dirname(outfile_full), exist_ok=True)
-                            unpackedfilesandlabels.append((outfile_rel, ['directory']))
+                            # no need to process '.', but for some reason some
+                            # data from '..' has to be processed
+                            if entryname != '.':
+                                outfile_rel = os.path.join(unpackdir, chaindir, fullname)
+                                outfile_full = scanenvironment.unpack_path(outfile_rel)
+                                os.makedirs(os.path.dirname(outfile_full), exist_ok=True)
+                                if entryname != '..':
+                                    unpackedfilesandlabels.append((outfile_rel, ['directory']))
                         elif fileattributes & 0x20 == 0x20:
                             chainstoprocess.append((cluster, 'file', chaindir, entrysize, fullname))
                         else:
@@ -3225,7 +3228,7 @@ def unpackFAT(fileresult, scanenvironment, offset, unpackdir):
 # https://www.coreboot.org/CBFS
 #
 # A CBFS file consists of various concatenated components.
-def unpackCBFS(fileresult, scanenvironment, offset, unpackdir):
+def unpack_cbfs(fileresult, scanenvironment, offset, unpackdir):
     '''Verify/label coreboot file system images'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -3422,7 +3425,7 @@ def unpackCBFS(fileresult, scanenvironment, offset, unpackdir):
 # https://en.wikipedia.org/wiki/MINIX_file_system
 # https://github.com/Stichting-MINIX-Research-Foundation/minix/tree/master/minix/fs/mfs
 # https://github.com/Stichting-MINIX-Research-Foundation/minix/tree/master/minix/usr.sbin/mkfs.mfs/v1l
-def unpackMinix1L(fileresult, scanenvironment, offset, unpackdir):
+def unpack_minix1l(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack Minix V1 file systems (extended Linux variant)'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -3849,7 +3852,7 @@ def unpackMinix1L(fileresult, scanenvironment, offset, unpackdir):
 
 
 # Linux kernel: Documentation/filesystems/romfs.txt
-def unpackRomfs(fileresult, scanenvironment, offset, unpackdir):
+def unpack_romfs(fileresult, scanenvironment, offset, unpackdir):
     '''Unpack a romfs file system'''
     filesize = fileresult.filesize
     filename_full = scanenvironment.unpack_path(fileresult.filename)
@@ -4024,7 +4027,8 @@ def unpackRomfs(fileresult, scanenvironment, offset, unpackdir):
                 sourcetargetname = offsettoname[specinfo]
                 if os.path.isabs(sourcetargetname):
                     sourcetargetname = os.path.relpath(sourcetargetname, '/')
-                sourcetargetname = os.path.normpath(os.path.join(unpackdir, sourcetargetname))
+                sourcetargetname = os.path.normpath(os.path.join(unpackdir, curcwd, sourcetargetname))
+                sourcetargetname = scanenvironment.unpack_path(sourcetargetname)
 
                 outfile_rel = os.path.join(unpackdir, curcwd, inodename)
                 outfile_full = scanenvironment.unpack_path(outfile_rel)
@@ -4405,7 +4409,7 @@ def unpack_cramfs(fileresult, scanenvironment, offset, unpackdir):
     # already exists.
 
     # first get a temporary name
-    cramfsunpackdirectory = tempfile.mkdtemp(dir=temporarydirectory)
+    cramfsunpackdirectory = tempfile.mkdtemp(dir=scanenvironment.temporarydirectory)
 
     # remove the directory. Possible race condition?
     shutil.rmtree(cramfsunpackdirectory)
@@ -4415,7 +4419,7 @@ def unpack_cramfs(fileresult, scanenvironment, offset, unpackdir):
         p = subprocess.Popen(['fsck.cramfs', '--extract=%s' % cramfsunpackdirectory, filename_full],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     else:
-        temporaryfile = tempfile.mkstemp(dir=temporarydirectory)
+        temporaryfile = tempfile.mkstemp(dir=scanenvironment.temporarydirectory)
         os.sendfile(temporaryfile[0], checkfile.fileno(), offset, cramfssize)
         os.fdopen(temporaryfile[0]).close()
         checkfile.close()
