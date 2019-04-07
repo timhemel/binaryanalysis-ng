@@ -627,6 +627,7 @@ To improve performance, we can:
 * make failed unpackings more efficient
 * reduce the number of failed unpackings
 
+## Base64
 
 Hypothesis: need for Base64 unpacks can be reduced.
 
@@ -646,32 +647,27 @@ On the test file, less files were identified as base64:
 
 ```
 openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/etc/openwrt_version-base64-1/unpacked.base64
-openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/etc/shells-base64-1/unpacked.base64
 openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/etc/modules.d/25-nls-utf8-base64-1/unpacked.base64
 openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/etc/modules.d/42-ip6tables-base64-1/unpacked.base64
-openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/etc/modules.d/brcmfmac-base64-1/unpacked.base64
-openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/etc/modules.d/brcmutil-base64-1/unpacked.base64
-openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/usr/lib/opkg/info/iw.list-base64-1/unpacked.base64
-openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/usr/lib/opkg/info/lua.list-base64-1/unpacked.base64
-openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/usr/lib/opkg/info/rpcd.conffiles-base64-1/unpacked.base
-64
+
 ```
 
 These are all false positives. The unpack statistics show the following:
 
 ```
 before: unpackBase64             9   692      1571611     36132697       4.17      95.83
-after:  unpackBase64             0   701            0     29255430       0.00     100.00
+after:  unpackBase64             6   695      1454942     29646770       4.68      95.32
+
 ```
 
-The new base64 code costs  29255431 / ( 1571611  +  36132697) = 0.7759174362781038 of the execution time of the old code.
+The new base64 code costs  (1454942 + 29646770) / ( 1571611  +  36132697) = 0.8248848380933023 of the execution time of the old code.
 
-In profile run 0015, we profiled the whole unpacking routine:
+In profile run 0016, we profiled the whole unpacking routine:
 
 ```
 /home/tim/binaryanalysis-ng/src/test/../bangunpack.py:10495(unpackBase64)
-->     707    0.001    0.011  /home/tim/binaryanalysis-ng/src/test/../ScanEnvironment.py:83(unpack_path)
-       697    0.007    0.008  /home/tim/binaryanalysis-ng/src/test/../bangunpack.py:10464(check_base64_chars)
+->     707    0.000    0.012  /home/tim/binaryanalysis-ng/src/test/../ScanEnvironment.py:83(unpack_path)
+       697    0.007    0.009  /home/tim/binaryanalysis-ng/src/test/../bangunpack.py:10464(check_base64_chars)
         18    0.000    0.000  /home/tim/binaryanalysis-ng/src/test/../bangunpack.py:10471(check_base64_spaces)
         18    0.000    0.000  /home/tim/binaryanalysis-ng/src/test/../bangunpack.py:10479(check_base64_consistent_lines)
         15    0.000    0.000  /usr/lib64/python3.7/base64.py:97(standard_b64decode)
@@ -680,7 +676,7 @@ In profile run 0015, we profiled the whole unpacking routine:
          6    0.000    0.000  /usr/lib64/python3.7/posixpath.py:75(join)
        233    0.000    0.000  {built-in method builtins.chr}
         12    0.000    0.000  {built-in method builtins.len}
-       754    0.008    0.011  {built-in method io.open}
+       754    0.009    0.012  {built-in method io.open}
         12    0.000    0.000  {method 'append' of 'list' objects}
        712    0.002    0.002  {method 'close' of '_io.BufferedReader' objects}
          6    0.000    0.000  {method 'close' of '_io.BufferedWriter' objects}
@@ -691,6 +687,7 @@ In profile run 0015, we profiled the whole unpacking routine:
 ```
 
 697 - 18 = 679 files are rejected in the first check `check_base64_chars`.
+
 
 
 # Overview of runs
@@ -715,6 +712,7 @@ represent the actual code that has been profiled.
 | 0013	 | performance	 | ad00d846d5b8f708c92e5e03f9e3c6a2636418b3 |
 | 0014	 | performance	 | c4e2e99d0acb9adc070940e209cca03da8e76725 |
 | 0015	 | performance	 | d95f0b8cb4453ef2f242a344a1205a5bd9192fd1 |
+| 0016	 | performance	 | d95f0b8cb4453ef2f242a344a1205a5bd9192fd1 |
 
 
 
