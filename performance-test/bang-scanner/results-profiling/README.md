@@ -566,7 +566,7 @@ There is a difference of 130 calls, which means that 130 extra signature candida
 For a run on the openwrt test file, with commit 456874809437342480e0353a3f14921b901bbd98 we gathered the following results from the logs:
 
 | phase   | calls |
-|---------|-------|
+| ------- | -----:|
 | TRYING  | 6123  |
 | FAIL    | 5831  |
 | SUCCESS | 310   |
@@ -633,7 +633,7 @@ Hypothesis: need for Base64 unpacks can be reduced.
 
 If we split the base64 failures, we see:
 
-|----:|------------------------------------------|
+| ---:| ---------------------------------------- |
 | 537 | invalid character not in base16/32/64 alphabets |
 | 87 | inconsistent line wrapping |
 | 64 | not a valid base64 file |
@@ -696,7 +696,7 @@ Note: sometimes, more experiments were done without committing the code in betwe
 represent the actual code that has been profiled.
 
 | run	 | branch	 | commit                                   |
-|--------|---------------|------------------------------------------|
+| ------ | ------------- | ---------------------------------------- |
 | 0001	 | performance	 | 4a5b610aa63798a373dff3fa4de08f189d3ebe9f |
 | 0002	 | performance	 | 4a5b610aa63798a373dff3fa4de08f189d3ebe9f |
 | 0003	 | performance	 | 4a5b610aa63798a373dff3fa4de08f189d3ebe9f |
