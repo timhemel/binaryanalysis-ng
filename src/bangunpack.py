@@ -6751,8 +6751,8 @@ def unpackIHex(fileresult, scanenvironment, offset, unpackdir):
             seenrecordtypes.add(recordtype)
 
             # TODO: checkfile.newlines is the # of newlines translated so far
-            # unpackedsize += line_length + len(checkfile.newlines)
-            unpackedsize += len(line)
+            unpackedsize += line_length + len(checkfile.newlines)
+            # unpackedsize += len(line)
 
             if endofihex:
                 break
