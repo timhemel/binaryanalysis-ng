@@ -9935,6 +9935,19 @@ configre = re.compile('# CONFIG_\w+ is not set$')
 configre2 = re.compile('(CONFIG_\w+)=([ynm])$')
 configre3 = re.compile('(CONFIG_\w+)=([\w"\-/.$()+]+)$')
 
+prescanre = re.compile('#?\s*CONFIG_\w+')
+
+def check_kernelconfig(f):
+    for l in f:
+        if l == '': continue
+        m = prescanre.match(l)
+        if m is None and l[0]!='#':
+            # allow comments
+            return False
+        elif m is not None:
+            # if kernelconfig line found, return
+            return True
+    return False
 
 # Kernel configuration files that are embedded in Linux kernel
 # images: text only
@@ -9955,7 +9968,14 @@ def unpackKernelConfig(fileresult, scanenvironment, offset, unpackdir):
 
     # open the file in text only mode
     checkfile = open(filename_full, 'r')
+    is_kernelconfig = check_kernelconfig(checkfile)
+    checkfile.close()
+    if not is_kernelconfig:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'not kernel configuration file'}
+        return {'status': False, 'error': unpackingerror}
 
+    checkfile = open(filename_full, 'r')
     headerfound = False
     kernelconfigfound = False
 
