@@ -633,7 +633,8 @@ Hypothesis: need for Base64 unpacks can be reduced.
 
 If we split the base64 failures, we see:
 
-| ---:| ---------------------------------------- |
+| count | message  |
+| -----:| ---------------------------------------- |
 | 537 | invalid character not in base16/32/64 alphabets |
 | 87 | inconsistent line wrapping |
 | 64 | not a valid base64 file |
