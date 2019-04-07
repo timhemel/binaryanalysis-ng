@@ -690,11 +690,59 @@ In profile run 0016, we profiled the whole unpacking routine:
 697 - 18 = 679 files are rejected in the first check `check_base64_chars`.
 
 
+## IHex
+
+In run 0001 on DSM, we see many false positives for IHex:
+
+unpackIHex               1  6021       754786    808577637       0.09      99.91
+
+breakdown of the error messages:
+
+| count | error message |
+| -----:| ------------------------- |
+| 6009 | line does not start with : |
+| 12 | no end of data found |
+
+In the code we see that a file is unpacked while it is checked. In 0002, we add a check function
+`check_ihex_format`. This reads the file, inspects it and closes it. The unpack statistics are:
+
+```
+0001: unpackIHex               1  6021       754786    808577637       0.09      99.91
+0002: unpackIHex               1  6021       848346    379005806       0.22      99.78
+```
+
+The time spent on the successful unpacking takes longer, because of the extra check. The time saved on failed attempts more than compensates for that. We can still remove the old checking code because it is no longer needed, to get an extra speedup.
+
+We also see a reduction in profiling execution time:
+
+```
+0001:
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+     6022    0.104    0.000    0.949    0.000 /home/tim/binaryanalysis-ng/src/test/../bangunpack.py:6615(unpackIHex)
+0002:
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+     6022    0.023    0.000    0.433    0.000 /home/tim/binaryanalysis-ng/src/test/../bangunpack.py:6626(unpackIHex)
+```
+
+In 0003, the checks that were done were removed and a few more optimizations were done. The unpack results are:
+
+```
+0001: unpackIHex               1  6021       754786    808577637       0.09      99.91
+0002: unpackIHex               1  6021       848346    379005806       0.22      99.78
+0003: unpackIHex               1  6021       864567    370927609       0.23      99.77
+```
+
+The optimization for successful unpacking is difficult to measure because it is only executed once.
+
 
 # Overview of runs
 
 Note: sometimes, more experiments were done without committing the code in between. Therefore, the commit does not always
 represent the actual code that has been profiled.
+
+## openwrt
+
+File used: `openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz`
 
 | run	 | branch	 | commit                                   |
 | ------ | ------------- | ---------------------------------------- |
@@ -715,5 +763,13 @@ represent the actual code that has been profiled.
 | 0015	 | performance	 | d95f0b8cb4453ef2f242a344a1205a5bd9192fd1 |
 | 0016	 | performance	 | d95f0b8cb4453ef2f242a344a1205a5bd9192fd1 |
 
+## DSM
 
+File used: `DSM_DS112+_23824.pat`
+
+| run	 | branch	 | commit                                   |
+| ------ | ------------- | ---------------------------------------- |
+| 0001	 | performance	 | 55ca85f3f71cfb30279d03118e09f4cb59b5d93b |
+| 0002	 | performance	 | 3f4e92ec59ec654d54fbdde8511c1626900c7db7 |
+| 0003	 | performance	 | 04940687a100885414c86943e1ca0ce07fe4a0ac |
 
