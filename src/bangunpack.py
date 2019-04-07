@@ -6608,6 +6608,17 @@ def unpackWIM(fileresult, scanenvironment, offset, unpackdir):
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}
 
+def check_ihex_format(f):
+    '''f is opened as text'''
+    lines = 0
+    for line in f:
+        l = line.strip()
+        if l == '': continue
+        if l[0] == '#': continue
+        if l[0] != ':':
+            return 0
+        lines += 1
+    return lines
 
 # https://en.wikipedia.org/wiki/Intel_HEX
 # For now it is assumed that only files that are completely text
@@ -6622,6 +6633,17 @@ def unpackIHex(fileresult, scanenvironment, offset, unpackdir):
     unpackedsize = 0
 
     allowbroken = False
+
+    checkfile = open(filename_full, 'r')
+    checkfile.seek(offset)
+    validlines = check_ihex_format(checkfile)
+    checkfile.close()
+    if validlines == 0:
+        unpackingerror = {'offset': offset+unpackedsize,
+                          'fatal': False,
+                          'reason': 'no lines starting with :'}
+        return {'status': False, 'error': unpackingerror}
+
 
     # open the file in text mode and process each line
     checkfile = open(filename_full, 'r')
