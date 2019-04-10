@@ -10870,7 +10870,7 @@ def unpackCertificate(fileresult, scanenvironment, offset, unpackdir):
     if checkbytes != b'-----BEGIN ':
         checkfile.close()
         unpackingerror = {'offset': offset, 'fatal': False,
-                          'reason': 'not a valid certificate'}
+                          'reason': 'not a valid certificate (no begin)'}
         return {'status': False, 'error': unpackingerror}
 
     # rewind and read more data
