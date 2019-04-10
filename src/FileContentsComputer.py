@@ -23,6 +23,7 @@
 import hashlib
 import tlsh
 import string
+import collections
 
 class FileContentsComputer:
     def __init__(self, read_size):
@@ -144,7 +145,8 @@ class ByteCounter:
 
     def initialize(self):
         self.bytecounter = collections.Counter(
-            dict([(i, 0) for i in range(0, 256)]))
+            dict( ( (i, 0) for i in range(0, 256) ) )
+        )
 
     def compute(self, data):
         self.bytecounter.update(data)
@@ -178,16 +180,16 @@ class Hasher:
         self.hash_algorithms = hash_algorithms
 
     def initialize(self):
-        self.hashes = dict([(a, hashlib.new(a))
-            for a in self.hash_algorithms])
+        self.hashes = dict( ( (a, hashlib.new(a))
+            for a in self.hash_algorithms ) )
 
     def compute(self, data):
         for a in self.hashes:
             self.hashes[a].update(data)
 
     def finalize(self):
-        self.hash_results = dict([(algorithm, computed_hash.hexdigest())
-            for algorithm, computed_hash in self.hashes.items()])
+        self.hash_results = dict( ( (algorithm, computed_hash.hexdigest())
+            for algorithm, computed_hash in self.hashes.items() ) )
 
     def get(self):
         return self.hash_results

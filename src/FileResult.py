@@ -35,6 +35,7 @@ class FileResult:
         self.filesize = None
         self.mimetype = None
         self.mimetype_encoding = None
+        self.byte_counter = None
 
     def set_filesize(self, size):
         self.filesize = size

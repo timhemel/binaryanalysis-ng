@@ -492,6 +492,7 @@ class ScanJob:
         if self.scanenvironment.get_createbytecounter() and 'padding' not in self.fileresult.labels:
             byte_counter = ByteCounter()
             fc.subscribe(byte_counter)
+            self.fileresult.byte_counter = byte_counter
 
         is_text = IsTextComputer()
         fc.subscribe(is_text)
@@ -688,7 +689,7 @@ def processfile(dbconn, dbcursor, scanenvironment):
                 # * any extra data that might have been passed around
                 resultout = {}
                 if createbytecounter and 'padding' not in scanjob.fileresult.labels:
-                    resultout['bytecount'] = sorted(byte_counter.get().items())
+                    resultout['bytecount'] = sorted(fileresult.byte_counter.get().items())
                     # write a file with the distribution of bytes in the scanned file
                     bytescountfilename = scanenvironment.resultsdirectory / ("%s.bytes" % scanjob.fileresult.get_hash())
                     if not bytescountfilename.exists():

@@ -38,6 +38,7 @@ class PerfTestProfile(TestBase):
         shutil.copy(scanpath, self.unpackdir / scanpath.name)
         resultsfile = pathlib.Path("profile-%s.stats" % scanpath.name).absolute()
         print(resultsfile)
+        # self.scan_environment.createbytecounter = True
         fileresult = create_fileresult_for_path(self.unpackdir, pathlib.Path(scanpath.name))
         cProfile.runctx('self.run_scan(fileresult)', globals(), locals(), filename=resultsfile)
         # cProfile.runctx('self.run_scan(fileresult)', globals(), locals())
