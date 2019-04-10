@@ -14,10 +14,10 @@ import bangfilescans
 from FileResult import *
 from ScanEnvironment import *
 
-def create_fileresult_for_path(unpackdir, path, labels=set([]),
+def create_fileresult_for_path(unpackdir, path, parentlabels=set([]), labels=set([]),
         calculate_size=True):
     fp = pathlib.Path(unpackdir) / path
-    fr = FileResult(path, str(path.parent), labels)
+    fr = FileResult(path, str(path.parent), parentlabels, labels)
     if calculate_size:
         fr.set_filesize(fp.stat().st_size)
     return fr

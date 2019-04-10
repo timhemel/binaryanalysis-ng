@@ -48,7 +48,7 @@ class TestScanJob(TestBase):
 
     def test_process_paddingfile_has_correct_labels(self):
         self._create_padding_file_in_directory()
-        fileresult = create_fileresult_for_path(self.unpackdir, self.padding_file, set(['padding']))
+        fileresult = create_fileresult_for_path(self.unpackdir, self.padding_file, labels=set(['padding']))
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
         try:
@@ -65,7 +65,7 @@ class TestScanJob(TestBase):
         # /home/tim/bang-test-scrap/bang-scan-jucli3nm/unpack/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/www/luci-static/bootstrap/cascade.css
         fn = pathlib.Path("a/cascade.css")
         self._copy_file_from_testdata(fn)
-        fileresult = create_fileresult_for_path(self.unpackdir,fn,set())
+        fileresult = create_fileresult_for_path(self.unpackdir,fn,labels=set())
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
         try:
@@ -82,7 +82,7 @@ class TestScanJob(TestBase):
         # openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz-gzip-1/openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img-ext2-1/etc/openwrt_version
         fn = pathlib.Path("a/openwrt_version")
         self._copy_file_from_testdata(fn)
-        fileresult = create_fileresult_for_path(self.unpackdir,fn,set())
+        fileresult = create_fileresult_for_path(self.unpackdir,fn,labels=set())
         # fileresult = self._create_fileresult_for_file(fn, os.path.dirname(fn), set())
 
         scanjob = ScanJob(fileresult)
@@ -118,7 +118,7 @@ class TestScanJob(TestBase):
     def test_gzip_unpacks_to_right_directory(self):
         fn = pathlib.Path("a/hello.gz")
         self._copy_file_from_testdata(fn)
-        fileresult = create_fileresult_for_path(self.unpackdir, fn, set())
+        fileresult = create_fileresult_for_path(self.unpackdir, fn, labels=set())
 
         scanjob = ScanJob(fileresult)
         self.scanfile_queue.put(scanjob)
