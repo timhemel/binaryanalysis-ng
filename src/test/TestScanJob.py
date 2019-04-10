@@ -5,6 +5,8 @@ import pathlib
 import inspect
 import unittest
 
+import ahocorasick
+
 from TestUtil import *
 
 from FileResult import *
@@ -198,6 +200,25 @@ class TestScanJob(TestBase):
         la = [ m.start() for m in o_a2 ]
         lb = [ pos for pos in o_b1 ]
         self.assertListEqual(la, lb)
+
+    def test_automaton_iter_same_as_re_overlapping_iter(self):
+        s = b"ababacdefghijklmnopqrstuvwxyz"
+        # res1 = [ re.compile(b'aba'), re.compile(b'de'), re.compile(b'bb') ]
+        re1 = re.compile(b'aba')
+        automaton = ahocorasick.Automaton()
+        automaton.add_word(b'aba', (3, 'first'))
+        automaton.make_automaton()
+
+        offsets_re = re_find_overlapping_iter(re1,s, len(s))
+        offsets_automaton = ( end_index - signature_length + 1
+                for end_index, (signature_length, ftype) in
+                    automaton.iter(s, 0, len(s))
+            )
+
+        lre = [ pos for pos in offsets_re ]
+        laut = [ pos for pos in offsets_automaton ]
+        self.assertListEqual(lre, laut)
+
 
 if __name__=="__main__":
     unittest.main()

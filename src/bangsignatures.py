@@ -25,6 +25,8 @@
 import math
 import re
 
+import ahocorasick
+
 import bangunpack
 import bangfilesystems
 import bangmedia
@@ -171,6 +173,15 @@ def compute_signature_regexps():
     return d
 
 signature_regexps = compute_signature_regexps()
+
+def compute_signature_automaton():
+    a = ahocorasick.Automaton()
+    for ftype,signature in signatures.items():
+        a.add_word(signature, (len(signature), ftype))
+    a.make_automaton() 
+    return a
+
+signature_automaton = compute_signature_automaton()
 
 
 # The result of the scan is a dictionary containing:

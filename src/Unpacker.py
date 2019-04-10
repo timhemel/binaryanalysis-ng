@@ -176,6 +176,19 @@ class Unpacker:
             # use an overlap, i.e. go back
             self.scanfile.seek(-maxsignaturesoffset, 1)
 
+    def find_offsets_with_signature_automaton(self, filesize):
+        signature_offsets = bangsignatures.signaturesoffset
+        prescan_f = bangsignatures.prescan
+        res = bangsignatures.signature_automaton.iter(self.scanbytes.tobytes(), 0, self.bytesread)
+        for end_index, (signature_length, s) in res:
+            offset = end_index - signature_length + 1
+            signature_offset = signature_offsets.get(s,0)
+            if offset + self.offsetinfile < signature_offset:
+                continue
+            if not prescan_f(s, self.scanbytes, self.bytesread, filesize, offset, self.offsetinfile):
+                continue
+            yield (offset + self.offsetinfile - signature_offset, s)
+
     def find_offsets_for_signature_find_iterator(self, s, v, filesize):
         res = string_find_iter(v, self.scanbytes.obj, self.bytesread)
         for r in res:

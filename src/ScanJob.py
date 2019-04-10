@@ -253,11 +253,12 @@ class ScanJob:
             # instead of:
             # while unpacker.get_current_offset_in_file() != self.fileresult.filesize:
             while True:
-                candidateoffsetsfound = { x
-                    for s,v in bangsignatures.signature_regexps.items()
-                    for x in unpacker.find_offsets_for_overlapping_signature_iterator(s, v, self.fileresult.filesize)
+                #candidateoffsetsfound = { x
+                #    for s,v in bangsignatures.signature_regexps.items()
+                #    for x in unpacker.find_offsets_for_overlapping_signature_iterator(s, v, self.fileresult.filesize)
                     # for x in unpacker.find_offsets_for_signature_iterator(s, v, self.fileresult.filesize)
-                }
+                # }
+                candidateoffsetsfound = unpacker.find_offsets_with_signature_automaton(self.fileresult.filesize)
 
                 # For each of the found candidates see if any
                 # data can be unpacked. Process these in the order
