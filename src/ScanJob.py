@@ -263,7 +263,8 @@ class ScanJob:
                 # For each of the found candidates see if any
                 # data can be unpacked. Process these in the order
                 # in which the signatures were found in the file.
-                for offset_with_signature in sorted(candidateoffsetsfound):
+                # for offset_with_signature in sorted(candidateoffsetsfound):
+                for offset_with_signature in candidateoffsetsfound:
                     # skip offsets which are not useful to look at
                     # for example because the data has already been
                     # unpacked.
