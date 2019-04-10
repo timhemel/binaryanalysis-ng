@@ -235,7 +235,6 @@ String matchers are not faster than regular expressions. The reason is the call 
    164993    9.902    0.000    9.902    0.000 {method 'find' of 'bytearray' objects}
 ```
 
-Efficient string matching algorithms for simple strings exist, but we could not find an efficient Python implementation for them.
 
 Hypothesis: iterating over `bangsignature.signature_regexps.items()` will be quicker than looking up the regexp by signature repeatedly.
 
@@ -266,7 +265,7 @@ The results:
       933    0.036    0.000   14.342    0.015 /home/tim/binaryanalysis-ng/src/test/../ScanJob.py:237(check_for_signatures)
 ```
 
-This saves about 1s on the tested file.
+This saves about 0.5s on the tested file.
 
 
 Hypothesis: lookups to `bangsignatures.signatureoffset` are expensive, storing it in a local variable saves time.
@@ -304,7 +303,6 @@ The results:
 ```
 
 The performance is similar.
-
 
 # Computations over files
 
@@ -560,6 +558,26 @@ We can see how many more signature candidates were found by looking at the numbe
 
 There is a difference of 130 calls, which means that 130 extra signature candidates were detected.
 
+Efficient string matching algorithms for simple strings exist. The Aho-Corasick algorithm runs in linear time (length of the input string) and can match many keyword patterns. We tried the `pyahocorasick` implementation, compiled to work on byte strings (see appendix).
+
+```
+0017:
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+     4457    1.301    0.000    1.447    0.000 /home/tim/binaryanalysis-ng/src/test/../Unpacker.py:179(find_offsets_with_signature_automaton)
+     2624    0.022    0.000   11.807    0.004 /home/tim/binaryanalysis-ng/src/test/../Unpacker.py:279(try_unpack_file_for_signatures)
+     1254    0.089    0.000    0.089    0.000 {method 'iter' of 'ahocorasick.Automaton' objects}
+0014:
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+   140216    0.086    0.000    1.980    0.000 /home/tim/binaryanalysis-ng/src/test/../Unpacker.py:195(find_offsets_for_overlapping_signature_iterator)
+   164450    0.056    0.000    1.845    0.000 /home/tim/binaryanalysis-ng/src/test/../Unpacker.py:43(re_find_overlapping_iter)
+     2624    0.020    0.000   12.098    0.005 /home/tim/binaryanalysis-ng/src/test/../Unpacker.py:257(try_unpack_file_for_signatures)
+```
+
+The performance is similar. The Aho-Corasick algorithm seems a little faster. How this scales for more signatures is not clear.
+The automaton was configured to return the file type as a string, which is then used in a dictionary. During the initialization phase in `bangsignatures.py`, this can be changed to use integers instead, to save on dictionary lookups. The results should also be sorted, since the matcher traverses the string linearly. This saves a call to `sorted`.
+
+The overhead for building the automaton does not show up on the profiling results. It is possible to save and load the generated automaton if building takes too long. As an extra feature, the matcher support wildcards.
+
 
 # Trying to unpack a file
 
@@ -792,6 +810,7 @@ File used: `openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz`
 | 0014	 | performance	 | c4e2e99d0acb9adc070940e209cca03da8e76725 |
 | 0015	 | performance	 | d95f0b8cb4453ef2f242a344a1205a5bd9192fd1 |
 | 0016	 | performance	 | d95f0b8cb4453ef2f242a344a1205a5bd9192fd1 |
+| 0017	 | performance	 | 6fa0b961dc901e713f9e4d2b17f088eec78b8ea8 |
 
 ## DSM
 
@@ -802,4 +821,32 @@ File used: `DSM_DS112+_23824.pat`
 | 0001	 | performance	 | 55ca85f3f71cfb30279d03118e09f4cb59b5d93b |
 | 0002	 | performance	 | 3f4e92ec59ec654d54fbdde8511c1626900c7db7 |
 | 0003	 | performance	 | 04940687a100885414c86943e1ca0ce07fe4a0ac |
+
+
+# Using pyahocorasick
+
+By default, `pyahocorasick` works on Unicode strings in Python 3. Since we use byte strings, we have to compile it to use byte strings.
+After checking out the code, make the following change in `setup.py`:
+
+```
+diff --git a/setup.py b/setup.py
+index 97d8a51..9848712 100644
+--- a/setup.py
++++ b/setup.py
+@@ -33,7 +33,7 @@ if python_version.major not in [2, 3]:
+ if python_version.major == 3:
+     macros = [
+         # when defined unicode strings are supported
+-        ('AHOCORASICK_UNICODE', ''),
++        # ('AHOCORASICK_UNICODE', ''),
+     ]
+ else:
+     # On Python 2, unicode strings are not supported (yet).
+```
+
+Then, compile with (for example):
+
+```
+python3 setup.py install --user
+```
 
