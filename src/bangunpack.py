@@ -7488,6 +7488,7 @@ def unpackRPM(fileresult, scanenvironment, offset, unpackdir):
             fr = FileResult(
                    payloaddir / os.path.basename(payloadfile),
                    (payloaddir / os.path.basename(payloadfile)).parent,
+                   set(),
                    [])
             fr.set_filesize(payloadsize)
             unpackresult = unpackCpio(fr, scanenvironment, 0, unpackdir)
@@ -10234,8 +10235,10 @@ def unpackUBootLegacy(fileresult, scanenvironment, offset, unpackdir):
     imagename = checkbytes.split(b'\x00')[0]
     unpackedsize += 32
 
+    # set the name of the image. If the name of the image is either empty
+    # empty or cannot be deocded to a UTF-8 string hardcode a name based
+    # on the image type of the U-Boot file.
     if imagename == b'':
-        # some default values
         if ubootimagetype == 2:
             imagename = 'kernel'
         elif ubootimagetype == 3:
@@ -10246,7 +10249,11 @@ def unpackUBootLegacy(fileresult, scanenvironment, offset, unpackdir):
             imagename = imagename.decode()
             ubootdata['name'] = imagename
         except UnicodeDecodeError:
-            pass
+            if ubootimagetype == 2:
+                imagename = 'kernel'
+            elif ubootimagetype == 3:
+                imagename = 'ramdisk'
+            ubootdata['name'] = imagename
 
     # now calculate the CRC of the header and compare it
     # to the stored one
@@ -10553,6 +10560,12 @@ def unpackBase64(fileresult, scanenvironment, offset, unpackdir):
     labels = []
     unpackingerror = {}
     unpackedsize = 0
+
+    # false positives: base64 files in Chrome PAK files
+    if 'pak' in fileresult.parentlabels:
+        unpackingerror = {'offset': offset, 'fatal': False,
+                          'reason': 'parent file PAK'}
+        return {'status': False, 'error': unpackingerror}
 
     # add a cut off value to prevent many false positives
     base64cutoff = 8
@@ -11600,8 +11613,8 @@ def unpackPasswd(fileresult, scanenvironment, offset, unpackdir):
             passwdentry = {}
             passwdentry['name'] = linesplits[0]
             passwdentry['passwd'] = linesplits[1]
-            passwdentry['uid'] = linesplits[2]
-            passwdentry['gid'] = linesplits[3]
+            passwdentry['uid'] = uid
+            passwdentry['gid'] = gid
 
             if foundlen == 7:
                 passwdentry['gecos'] = linesplits[4]
@@ -14513,6 +14526,24 @@ def unpack_bflt(fileresult, scanenvironment, offset, unpackdir):
         tmp_full = scanenvironment.unpack_path(tmp_rel)
         gzip_size = tmp_full.stat().st_size
 
+        # now perform all the checks that couldn't be done
+        # because the data is gzip compressed
+        if offset_data_start >  gzip_size + 64:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid data start offset'}
+            return {'status': False, 'error': unpackingerror}
+        if offset_data_end > gzip_size + 64:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid data end offset'}
+            return {'status': False, 'error': unpackingerror}
+        if offset_reloc_start > gzip_size + 64:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'invalid reloc start offset'}
+            return {'status': False, 'error': unpackingerror}
+
         # cleanup
         tmp_full.unlink()
     else:
@@ -14535,6 +14566,114 @@ def unpack_bflt(fileresult, scanenvironment, offset, unpackdir):
         outfile.close()
         unpackedfilesandlabels.append((outfile_rel, ['blft', 'executable', 'unpacked']))
         checkfile.close()
+
+    return {'status': True, 'length': unpackedsize, 'labels': labels,
+            'filesandlabels': unpackedfilesandlabels}
+
+
+# verify smbpasswd files
+# man 5 smbpasswd
+def unpack_smbpasswd(fileresult, scanenvironment, offset, unpackdir):
+    '''Verify a Samba password file'''
+    filesize = fileresult.filesize
+    filename_full = scanenvironment.unpack_path(fileresult.filename)
+    unpackedfilesandlabels = []
+    labels = []
+    unpackingerror = {}
+    unpackedsize = 0
+
+    passwdentries = []
+
+    # open the file
+    try:
+        checkfile = open(filename_full, 'r')
+        for l in checkfile:
+            linesplits = l.strip().split(':')
+            if len(linesplits) < 6:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'invalid smbpasswd file entry'}
+                return {'status': False, 'error': unpackingerror}
+
+            # second field is uid
+            try:
+                uid = int(linesplits[1])
+            except ValueError:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'invalid UID in smbpasswd file entry'}
+                return {'status': False, 'error': unpackingerror}
+
+            # third field is the LANMAN password hash, 32 hex digits, or all X
+            if len(linesplits[2]) != 32:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'invalid LANMAN hash in smbpasswd file entry'}
+                return {'status': False, 'error': unpackingerror}
+
+            if linesplits[2] != 32 * 'X':
+                try:
+                    binascii.unhexlify(linesplits[2])
+                except binascii.Error:
+                    checkfile.close()
+                    unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                      'reason': 'invalid LANMAN hash in smbpasswd file entry'}
+                    return {'status': False, 'error': unpackingerror}
+
+            # fourth field is the NT password hash, 32 hex digits
+            if len(linesplits[3]) != 32:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'invalid NT password hash in smbpasswd file entry'}
+                return {'status': False, 'error': unpackingerror}
+            try:
+                binascii.unhexlify(linesplits[3])
+            except binascii.Error:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'invalid NT password hash in smbpasswd file entry'}
+                return {'status': False, 'error': unpackingerror}
+
+            # fifth field is accountflags, always 13 characters
+            if len(linesplits[4]) != 13:
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'invalid account flags in smbpasswd file entry'}
+                return {'status': False, 'error': unpackingerror}
+
+            # account flags always include brackets
+            if linesplits[4][0] != '[' or linesplits[4][-1] != ']':
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'invalid account flags in smbpasswd file entry'}
+                return {'status': False, 'error': unpackingerror}
+
+            # last changed field
+            if not linesplits[5].startswith('LCT-'):
+                checkfile.close()
+                unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                                  'reason': 'invalid last changed field in smbpasswd file entry'}
+                return {'status': False, 'error': unpackingerror}
+
+            passwdentry = {}
+            passwdentry['name'] = linesplits[0]
+            passwdentry['uid'] = uid
+            passwdentry['lanman'] = linesplits[2]
+            passwdentry['ntpasswd'] = linesplits[3]
+            passwdentry['flags'] = linesplits[4][1:-1].strip()
+            passwdentry['changed'] = linesplits[5][4:]
+
+            passwdentries.append(passwdentry)
+    except:
+        checkfile.close()
+        unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                          'reason': 'not enough data for entry'}
+        return {'status': False, 'error': unpackingerror}
+
+    checkfile.close()
+
+    unpackedsize = filesize
+    labels.append('smbpasswd')
 
     return {'status': True, 'length': unpackedsize, 'labels': labels,
             'filesandlabels': unpackedfilesandlabels}

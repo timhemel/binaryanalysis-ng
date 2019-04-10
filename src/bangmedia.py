@@ -2096,7 +2096,8 @@ def unpack_jpeg(fileresult, scanenvironment, offset, unpackdir):
                         ffpos = checkbytes.find(b'\xff', startffpos)
                         if ffpos == -1:
                             break
-                        if checkfile.tell() == filesize:
+                        # if 0xff is the last byte, bail out
+                        if oldpos + ffpos == filesize - 1:
                             break
                         startffpos = ffpos + 1
                         if ffpos < readsize - 1:
@@ -2978,6 +2979,12 @@ def unpack_apple_icon(fileresult, scanenvironment, offset, unpackdir):
                               'reason': 'not enough icon data'}
             return {'status': False, 'error': unpackingerror}
         iconlength = int.from_bytes(checkbytes, byteorder='big')
+        if iconlength == 0:
+            checkfile.close()
+            unpackingerror = {'offset': offset+unpackedsize, 'fatal': False,
+                              'reason': 'icon cannot be empty'}
+            return {'status': False, 'error': unpackingerror}
+
         # icon length cannot be outside of the file. The length field
         # includes the type and length, and unpackedsize already has
         # 4 bytes of the type added, so subtract 4 in the check.
