@@ -578,6 +578,18 @@ The automaton was configured to return the file type as a string, which is then 
 
 The overhead for building the automaton does not show up on the profiling results. It is possible to save and load the generated automaton if building takes too long. As an extra feature, the matcher support wildcards.
 
+# Bytecounter
+
+If we enable the optional bytecounter, we see a drastic performance change. The openwrt file takes 41s to scan instead of 24s.
+
+```
+0018:
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.113    0.113   41.382   41.382 /home/tim/binaryanalysis-ng/src/test/../ScanJob.py:624(processfile)
+    34747    0.021    0.000   16.265    0.000 /home/tim/binaryanalysis-ng/src/test/../FileContentsComputer.py:150(compute)
+```
+
+The bytecounter takes the extra 16s.
 
 # Trying to unpack a file
 
@@ -811,6 +823,7 @@ File used: `openwrt-18.06.1-brcm2708-bcm2710-rpi-3-ext4-sysupgrade.img.gz`
 | 0015	 | performance	 | d95f0b8cb4453ef2f242a344a1205a5bd9192fd1 |
 | 0016	 | performance	 | d95f0b8cb4453ef2f242a344a1205a5bd9192fd1 |
 | 0017	 | performance	 | 6fa0b961dc901e713f9e4d2b17f088eec78b8ea8 |
+| 0018	 | performance	 | 6d16240b0259e0b4b335f73eda4d30d4b870ebce |
 
 ## DSM
 
